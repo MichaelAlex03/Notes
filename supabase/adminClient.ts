@@ -5,6 +5,7 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "./database.types";
 
 // Admin client — uses the SERVICE ROLE secret, which bypasses Row Level
 // Security (full read/write/delete on every table). Server-only, no exceptions:
@@ -16,7 +17,7 @@ import { createClient } from "@supabase/supabase-js";
 //   persistSession: false   → nothing to save to storage
 //   autoRefreshToken: false → a per-request server client is too short-lived for
 //                             the background refresh timer to ever matter
-export const supabaseAdmin = createClient(
+export const supabaseAdmin = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   { auth: { autoRefreshToken: false, persistSession: false } }

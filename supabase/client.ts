@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "./database.types";
 
 // Public client factory — uses the PUBLISHABLE key, which is designed to be
 // exposed. Safe to run anywhere (browser or server) and kept out of the
@@ -14,7 +15,7 @@ import { createClient } from "@supabase/supabase-js";
 // shared instance and reuse it across users — on the server a shared client
 // handling concurrent requests would leak one user's token into another's.
 export const supabaseClient = (jwt?: string) => {
-  return createClient(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     jwt

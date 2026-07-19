@@ -8,7 +8,7 @@ CREATE TABLE users (
     user_email TEXT NOT NULL,
     user_password TEXT NOT NULL,
     authenticated BOOLEAN DEFAULT FALSE,
-    email_code INT,
+    email_code INT DEFAULT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 

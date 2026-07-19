@@ -13,6 +13,7 @@ export const SignUpForm = z.object({
 export type SignUp = z.infer<typeof SignUpForm>
 
 export const ConfirmForm = z.object({
+    email: z.email(),
     code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code")
 })
 

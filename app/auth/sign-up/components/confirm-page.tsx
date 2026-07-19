@@ -1,27 +1,52 @@
 'use client'
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useForm, SubmitHandler, Controller } from "react-hook-form"
 import { Button, FormHelperText, TextField } from "@mui/material"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Confirm, ConfirmForm } from "../lib/schema/schema"
+import { resendEmail, verifySignUp } from "../lib/server/signUpServerAction"
+import { useRouter, useSearchParams } from "next/navigation"
 
 const CODE_LENGTH = 6
 
+
 const ConfirmPage = () => {
 
-    const inputs = useRef<Array<HTMLInputElement | null>>([])
+    const inputs = useRef<Array<HTMLInputElement | null>>([]);
+    const router = useRouter()
+    const searchParams = useSearchParams()
+    const email = searchParams.get('email') ?? ''
 
-    const { control, handleSubmit } = useForm<Confirm>({
+    const { control, handleSubmit, formState: { isSubmitting } } = useForm<Confirm>({
         resolver: zodResolver(ConfirmForm),
         defaultValues: {
             code: ""
         }
     })
 
-   
+    const [error, setError] = useState<string>('')
 
-    const onSubmit: SubmitHandler<Confirm> = (data) => console.log(data);
+    const handleEmailResent = () => {
+        resendEmail('test')
+    }
+
+    const onSubmit: SubmitHandler<Confirm> = async (data) => {
+
+        setError('')
+        const body = {
+            ...data,
+            email
+        }
+
+        const verifyRes = await verifySignUp(body);
+        if (!verifyRes.success) {
+            setError(verifyRes.error)
+            return
+        }
+
+        router.replace('/auth/sign-in')
+    };
 
     // Initially set focus to first textfield
     useEffect(() => {
@@ -60,7 +85,7 @@ const ConfirmPage = () => {
                                                 }
                                             }}
                                             onKeyDown={(e) => {
-                                                if (e.key === "Backspace" && digits[index].trim() === "" && index > 0){
+                                                if (e.key === "Backspace" && digits[index].trim() === "" && index > 0) {
                                                     inputs.current[index - 1]?.focus()
                                                 }
                                             }}
@@ -89,14 +114,22 @@ const ConfirmPage = () => {
                     }}
                 />
 
-                <Button variant="contained" type="submit" fullWidth>
-                    <p>Verify</p>
+                {error && (
+                    <FormHelperText error>
+                        {error}
+                    </FormHelperText>
+                )}
+
+                <Button disabled={isSubmitting} variant="contained" type="submit" fullWidth>
+                    <p>{isSubmitting ? "Verifying..." : "Verify"}</p>
                 </Button>
             </form>
 
-            <p className="text-gray-500 text-sm">
-                Didn&apos;t get a code? <span className="underline cursor-pointer">Resend</span>
-            </p>
+            <button onClick={handleEmailResent}>
+                <p className="text-gray-500 text-sm">
+                    Didn&apos;t get a code? <span className="underline cursor-pointer">Resend</span>
+                </p>
+            </button>
         </div>
     )
 }

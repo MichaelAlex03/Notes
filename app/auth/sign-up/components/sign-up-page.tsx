@@ -4,8 +4,13 @@ import { useForm, SubmitHandler, Controller } from "react-hook-form"
 import { SignUp, SignUpForm } from "../lib/schema/schema";
 import { Button, TextField } from "@mui/material";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { signUp } from "../lib/server/signUpServerAction";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const SignUpPage = () => {
+
+    const router = useRouter()
 
     const { control, handleSubmit } = useForm<SignUp>({
         resolver: zodResolver(SignUpForm),
@@ -17,7 +22,24 @@ const SignUpPage = () => {
         }
     });
 
-    const onSubmit: SubmitHandler<SignUp> = (data) => console.log(data)
+    const [error, setError] = useState<string>('')
+
+    const onSubmit: SubmitHandler<SignUp> = async (data) => {
+        setError('')
+        const signUpRes = await signUp(data)
+
+        if (!signUpRes.success) {
+            setError(signUpRes.error)
+            return;
+        }
+
+        router.replace(`/auth/confirm?email=${encodeURIComponent(data.user_email)}`)
+
+    }
+
+    const handleGoToSignIn = () => {
+        router.push('/auth/sign-in')
+    }
 
     return (
         <div className="flex flex-col gap-4 h-screen items-center justify-center">
@@ -81,7 +103,15 @@ const SignUpPage = () => {
                 </Button>
             </form>
 
-            <p className="text-black">Already have an account? <span className="underline cursor-pointer">Sign in</span></p>
+            {error && (
+                <div className="text-red-600 text-sm">
+                    {error}
+                </div>
+            )}
+
+            <button onClick={handleGoToSignIn}>
+                <p className="text-black">Already have an account? <span className="underline cursor-pointer">Sign in</span></p>
+            </button>
         </div>
     )
 }
