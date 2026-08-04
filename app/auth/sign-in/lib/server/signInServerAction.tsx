@@ -12,7 +12,8 @@ export const signIn = async (data: SignIn) => {
 	if (!email || !password) {
 		return {
 			success: false,
-			'error': 'Missing email or password'
+			'error': 'Missing email or password',
+			accessToken: ''
 		}
 	}
 
@@ -25,7 +26,8 @@ export const signIn = async (data: SignIn) => {
 	if (error || !userData) {
 		return {
 			success: false,
-			'error': 'Unable to find user'
+			'error': 'Unable to find user',
+			accessToken: ''
 		}
 	}
 
@@ -34,7 +36,8 @@ export const signIn = async (data: SignIn) => {
 	if (!hashedPass) {
 		return {
 			success: false,
-			'error': 'Incorrect password'
+			'error': 'Incorrect password',
+			accessToken: ''
 		}
 	}
 
@@ -52,7 +55,8 @@ export const signIn = async (data: SignIn) => {
 	if (insertError){
 		return {
 			success: false,
-			'error': 'Unable to insert refresh token'
+			'error': 'Unable to insert refresh token',
+			accessToken: ''
 		}
 	}
 
@@ -63,7 +67,7 @@ export const signIn = async (data: SignIn) => {
 		httpOnly: true,
 		secure: process.env.NODE_ENV === 'production',
 		sameSite: 'lax',
-		path: '/api/auth/refresh', // CRITICAL: Only sent to the refresh API route
+		path: '/api/auth', // CRITICAL: Only sent to the refresh API route and logout to invalidate it in DB
 		maxAge: 60 * 60 * 24 * 7, // 7 days
 	});
 

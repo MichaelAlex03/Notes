@@ -24,12 +24,23 @@ export async function createRefreshToken (payload: JWT){
 	
 }
 
-// export async function verifyJWT(token: string){
-// 	try{
-// 		const { payload } = await verifyJWT(token, SECRET)
-// 		return payload
-// 	} catch {
-// 		return null
+export async function verifyAccessToken(token: string){
+	try{
+		const { payload } = await jwtVerify(token, JWT_SECRET)
+		return payload
+	} catch {
+		return null
 
-// 	}
-// }
+	}
+}
+
+
+export async function verifyRefreshToken(token: string){
+	try{
+		const { payload } = await jwtVerify(token, JWT_SECRET)
+		return payload
+	} catch {
+		return null
+
+	}
+}

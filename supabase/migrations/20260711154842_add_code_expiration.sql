@@ -2,4 +2,4 @@
 
 ALTER TABLE public.users
 ADD COLUMN email_expiration TIMESTAMPTZ,
-ADD COLUMN refresh_token TEXT;
+ADD COLUMN refresh_token TEXT DEFAULT NULL;

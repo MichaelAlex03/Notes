@@ -7,12 +7,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "../lib/server/signInServerAction";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/context/auth-context";
 
 
 
 const SignInPage = () => {
 
     const router = useRouter()
+    const { setAccessToken } = useAuth()
 
     const { control, handleSubmit, formState } = useForm<SignIn>({
         resolver: zodResolver(SignInForm),
@@ -35,8 +37,7 @@ const SignInPage = () => {
                 return
             }
 
-            
-
+            setAccessToken(signInRes.accessToken)
             router.replace('/home')
         } finally {
             setSigningIn(false)
