@@ -34,6 +34,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      rate_limits: {
+        Row: {
+          attempts: number
+          event_type: string
+          id: string
+          identifier: string
+          window_start: string
+        }
+        Insert: {
+          attempts: number
+          event_type: string
+          id?: string
+          identifier: string
+          window_start: string
+        }
+        Update: {
+          attempts?: number
+          event_type?: string
+          id?: string
+          identifier?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           authenticated: boolean | null

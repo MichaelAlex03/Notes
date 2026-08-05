@@ -51,6 +51,7 @@ const SignInPage = () => {
 
     return (
         <div className="flex flex-col gap-4 h-screen items-center justify-center">
+            <p>{error}</p>
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
                 <Controller
                     name="email"
