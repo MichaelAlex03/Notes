@@ -21,6 +21,7 @@ const ConfirmPage = () => {
     const { control, handleSubmit, formState: { isSubmitting } } = useForm<Confirm>({
         resolver: zodResolver(ConfirmForm),
         defaultValues: {
+            email,
             code: ""
         }
     })
@@ -28,18 +29,13 @@ const ConfirmPage = () => {
     const [error, setError] = useState<string>('')
 
     const handleEmailResent = () => {
-        resendEmail('test')
+        resendEmail(email)
     }
 
     const onSubmit: SubmitHandler<Confirm> = async (data) => {
 
         setError('')
-        const body = {
-            ...data,
-            email
-        }
-
-        const verifyRes = await verifySignUp(body);
+        const verifyRes = await verifySignUp(data);
         if (!verifyRes.success) {
             setError(verifyRes.error)
             return

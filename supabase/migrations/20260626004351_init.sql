@@ -1,7 +1,7 @@
 -- Migration: init
 -- Created: 2026-06-26 (UTC)
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE users (
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
-CREATE UNIQUE INDEX user_email_lower_key ON users(lower(user_email));
+CREATE UNIQUE INDEX IF NOT EXISTS user_email_lower_key ON users(lower(user_email));
 
 -- Enable RLS with no policies: this locks the table to all client requests
 -- (anon + authenticated via the publishable key). We intentionally add no

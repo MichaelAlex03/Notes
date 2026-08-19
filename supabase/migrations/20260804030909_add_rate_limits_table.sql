@@ -1,4 +1,4 @@
-CREATE TABLE rate_limits (
+CREATE TABLE IF NOT EXISTS rate_limits (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     identifier TEXT NOT NULL,
     event_type TEXT NOT NULL,
@@ -6,4 +6,4 @@ CREATE TABLE rate_limits (
     window_start TIMESTAMPTZ NOT NULL
 );
 
-CREATE INDEX rate_limit_identifier ON rate_limits (identifier)
+CREATE INDEX IF NOT EXISTS rate_limit_identifier ON rate_limits (identifier)

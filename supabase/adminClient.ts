@@ -18,7 +18,7 @@ import type { Database } from "./database.types";
 //   autoRefreshToken: false → a per-request server client is too short-lived for
 //                             the background refresh timer to ever matter
 export const supabaseAdmin = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NODE_ENV === 'development' ? process.env.NEXT_PUBLIC_LOCAL_SUPABASE_URL! : process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NODE_ENV === 'development' ? process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY! : process.env.SUPABASE_SERVICE_ROLE_KEY!,
   { auth: { autoRefreshToken: false, persistSession: false } }
 );

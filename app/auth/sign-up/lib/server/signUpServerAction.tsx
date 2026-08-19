@@ -10,7 +10,7 @@ const RATE_LIMIT_WINDOW = 300000
 
 
 export const signUp = async (data: SignUp) => {
-
+    console.log(data)
 
     const validData = SignUpForm.safeParse(data)
 
@@ -33,13 +33,26 @@ export const signUp = async (data: SignUp) => {
         .insert(newUser)
 
     if (error) {
+        console.error('Supabase insert error:', error)
         return {
             success: false,
             error: 'Cannot add new user'
         }
     }
 
-    await sendVerifyEmail(newUser.user_email)
+    /*
+     * sendVerifyEmail throws an Error class instance on failure.
+     * Next.js cannot serialize class instances across the server action boundary,
+     * so we catch it here and return a plain object instead.
+     */
+    try {
+        await sendVerifyEmail(newUser.user_email, emailCode)
+    } catch {
+        return {
+            success: false,
+            error: 'Failed to send verification email'
+        }
+    }
 
     return {
         success: true,
@@ -49,10 +62,19 @@ export const signUp = async (data: SignUp) => {
 
 export const verifySignUp = async (verifyEmailData: Confirm) => {
 
+    const validData = ConfirmForm.safeParse(verifyEmailData)
+
+    if (!validData.success) {
+        return {
+            success: false,
+            error: 'Invalid verify data'
+        }
+    }
+
     const { data: rateLimitAttempts, error: rateLimitError } = await supabaseAdmin
         .from('rate_limits')
         .select('id, attempts, window_start')
-        .eq('identifier', verifyEmailData.email)
+        .eq('identifier', validData.data.email)
         .eq('event_type', 'verify_sign_up_code')
         .gt('window_start', new Date(Date.now() - RATE_LIMIT_WINDOW).toISOString())
         .order('window_start', { ascending: false })
@@ -75,9 +97,8 @@ export const verifySignUp = async (verifyEmailData: Confirm) => {
         }
     }
 
-    // If id exists update existing window else insert new row
-
-    if (rateLimitAttempts.length > 0 && rateLimitAttempts[0].id) {
+    // Count is greater than 0 update else that means new row so insert
+    if (signUpAttempts > 0) {
         const { error: rateLimitUpdateError } = await supabaseAdmin
             .from('rate_limits')
             .update({
@@ -92,9 +113,9 @@ export const verifySignUp = async (verifyEmailData: Confirm) => {
             }
         }
     } else {
-        const { error: rateLimitInsertError} = await supabaseAdmin.from('rate_limits')
+        const { error: rateLimitInsertError } = await supabaseAdmin.from('rate_limits')
             .insert({
-                identifier: verifyEmailData.email,
+                identifier: validData.data.email,
                 event_type: 'verify_sign_up_code',
                 attempts: signUpAttempts + 1,
                 window_start: new Date(Math.floor(Date.now() / RATE_LIMIT_WINDOW) * RATE_LIMIT_WINDOW).toISOString()
@@ -109,14 +130,6 @@ export const verifySignUp = async (verifyEmailData: Confirm) => {
 
     }
 
-    const validData = ConfirmForm.safeParse(verifyEmailData)
-
-    if (!validData.success) {
-        return {
-            success: false,
-            error: 'Invalid verify data'
-        }
-    }
 
     const { email, code } = validData.data;
 
@@ -133,6 +146,20 @@ export const verifySignUp = async (verifyEmailData: Confirm) => {
         }
     }
 
+    const { error: signUpError } = await supabaseAdmin
+        .from('users')
+        .update({
+            authenticated: true,
+            email_code: null
+        })
+        .eq('user_email', email)
+
+    if (signUpError)
+        return {
+            success: false,
+            error: 'Unable to authenticate user'
+        }
+
     return {
         success: true,
         error: ''
@@ -142,7 +169,28 @@ export const verifySignUp = async (verifyEmailData: Confirm) => {
 
 export const resendEmail = async (email: string) => {
 
+    const emailCode = randomInt(100000, 1000000)
 
 
-    await sendVerifyEmail(email)
+    const { error } = await supabaseAdmin
+        .from('users')
+        .update({ email_code: emailCode })
+        .eq('user_email', email)
+
+    if (error) {
+        console.error('Supabase insert error:', error)
+        return {
+            success: false,
+            error: 'Cannot add new user'
+        }
+    }
+
+    try {
+        await sendVerifyEmail(email, emailCode)
+    } catch (error) {
+        return {
+            success: false,
+            error: 'Failed to send verification email'
+        }
+    }
 }

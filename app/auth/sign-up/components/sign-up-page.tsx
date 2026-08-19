@@ -33,7 +33,7 @@ const SignUpPage = () => {
             return;
         }
 
-        router.replace(`/auth/confirm?email=${encodeURIComponent(data.user_email)}`)
+        router.replace(`/auth/sign-up/confirm?email=${encodeURIComponent(data.user_email)}`)
 
     }
 

@@ -16,13 +16,13 @@ import type { Database } from "./database.types";
 // handling concurrent requests would leak one user's token into another's.
 export const supabaseClient = (jwt?: string) => {
   return createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    process.env.NODE_ENV === 'development' ? process.env.NEXT_PUBLIC_LOCAL_SUPABASE_URL! : process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NODE_ENV === 'development' ? process.env.NEXT_PUBLIC_LOCAL_PUBLISHABLE_KEY! : process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     jwt
       ? {
-          accessToken: async () => jwt,
-          auth: { persistSession: false, autoRefreshToken: false },
-        }
+        accessToken: async () => jwt,
+        auth: { persistSession: false, autoRefreshToken: false },
+      }
       : undefined
   );
 };
