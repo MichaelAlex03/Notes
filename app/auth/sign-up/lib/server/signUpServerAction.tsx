@@ -5,12 +5,33 @@ import { Confirm, ConfirmForm, SignUp, SignUpForm } from "../schema/schema";
 import { sendVerifyEmail } from "@/app/lib/emails";
 import { createHashedPassword } from "../signUp";
 import { randomInt } from "crypto";
+import { checkRateLimits } from "@/app/auth/lib/server/rateLimit";
+import { headers } from 'next/headers'
 
 const RATE_LIMIT_WINDOW = 300000
 
 
 export const signUp = async (data: SignUp) => {
-    console.log(data)
+
+    const h = await headers()
+    const ip = h.get('x-forwarded-for')?.split(',')[0].trim() ?? h.get('x-real-ip') ?? 'unknown'
+
+    const { data: rateLimits, error: rateLimitError } = await supabaseAdmin.rpc('check_rate_limit', {
+        p_event_type: 'sign.up',
+        p_window_size_ms: RATE_LIMIT_WINDOW,
+        p_identifier: ip,
+        p_threshold: 10
+    })
+
+    if (!rateLimits || rateLimitError) {
+        return {
+            success: false,
+            error: 'Unable to fetch rate limits'
+        }
+    }
+
+    const remainingMinutes = Math.ceil(new Date(rateLimits[0].windowend).getTime() - Date.now() / (1000 * 60))
+    if (!rateLimits[0].allowed) return { success: false, error: `Too many attempts try again in ${remainingMinutes}` }
 
     const validData = SignUpForm.safeParse(data)
 
@@ -62,6 +83,26 @@ export const signUp = async (data: SignUp) => {
 
 export const verifySignUp = async (verifyEmailData: Confirm) => {
 
+    const h = await headers()
+    const ip = h.get('x-forwarded-for')?.split(',')[0].trim() ?? h.get('x-real-ip') ?? 'unknown'
+
+    const { data: ipRateLimits, error: ipRateLimitError } = await supabaseAdmin.rpc('check_rate_limit', {
+        p_event_type: 'verify.sign.up',
+        p_window_size_ms: RATE_LIMIT_WINDOW,
+        p_identifier: ip,
+        p_threshold: 10
+    })
+
+    if (!ipRateLimits || ipRateLimitError) {
+        return {
+            success: false,
+            error: 'Unable to fetch rate limits'
+        }
+    }
+
+    const remainingMinutes = Math.ceil(new Date(ipRateLimits[0].windowend).getTime() - Date.now() / (1000 * 60))
+    if (!ipRateLimits[0].allowed) return { success: false, error: `Too many attempts try again in ${remainingMinutes}` }
+
     const validData = ConfirmForm.safeParse(verifyEmailData)
 
     if (!validData.success) {
@@ -71,67 +112,24 @@ export const verifySignUp = async (verifyEmailData: Confirm) => {
         }
     }
 
-    const { data: rateLimitAttempts, error: rateLimitError } = await supabaseAdmin
-        .from('rate_limits')
-        .select('id, attempts, window_start')
-        .eq('identifier', validData.data.email)
-        .eq('event_type', 'verify_sign_up_code')
-        .gt('window_start', new Date(Date.now() - RATE_LIMIT_WINDOW).toISOString())
-        .order('window_start', { ascending: false })
-        .limit(1)
+    const { email, code } = validData.data
 
-    if (rateLimitError) {
+    const { data: emailRateLimits, error: emailRateLimitError } = await supabaseAdmin.rpc('check_rate_limit', {
+        p_event_type: 'verify.sign.up',
+        p_window_size_ms: RATE_LIMIT_WINDOW,
+        p_identifier: email,
+        p_threshold: 10
+    })
+
+    if (!emailRateLimits || emailRateLimitError) {
         return {
             success: false,
-            error: 'Unable to fetch rate limit attempts'
+            error: 'Unable to fetch rate limits'
         }
     }
 
-    const signUpAttempts = rateLimitAttempts.length > 0 ? rateLimitAttempts[0].attempts : 0
-
-    if (signUpAttempts > 10) {
-        const timeUntilReset = Math.ceil(((new Date(rateLimitAttempts[0].window_start).getTime() + RATE_LIMIT_WINDOW) - Date.now()) / (1000 * 60))
-        return {
-            success: false,
-            error: `To many tries please try again in ${timeUntilReset} minutes`
-        }
-    }
-
-    // Count is greater than 0 update else that means new row so insert
-    if (signUpAttempts > 0) {
-        const { error: rateLimitUpdateError } = await supabaseAdmin
-            .from('rate_limits')
-            .update({
-                attempts: signUpAttempts + 1,
-            })
-            .eq('id', rateLimitAttempts[0].id)
-
-        if (rateLimitUpdateError) {
-            return {
-                success: false,
-                error: 'Unable to update rate limit'
-            }
-        }
-    } else {
-        const { error: rateLimitInsertError } = await supabaseAdmin.from('rate_limits')
-            .insert({
-                identifier: validData.data.email,
-                event_type: 'verify_sign_up_code',
-                attempts: signUpAttempts + 1,
-                window_start: new Date(Math.floor(Date.now() / RATE_LIMIT_WINDOW) * RATE_LIMIT_WINDOW).toISOString()
-            })
-
-        if (rateLimitInsertError) {
-            return {
-                success: false,
-                error: 'Unable to insert new rate limit row'
-            }
-        }
-
-    }
-
-
-    const { email, code } = validData.data;
+    const emailRemainingMinutes = Math.ceil(new Date(emailRateLimits[0].windowend).getTime() - Date.now() / (1000 * 60))
+    if (!emailRateLimits[0].allowed) return { success: false, error: `Too many attempts try again in ${emailRemainingMinutes}` }
 
     const { data, error } = await supabaseAdmin
         .from('users')

@@ -5,6 +5,7 @@ import { SignIn, SignInForm } from "../schemas/schema"
 import { supabaseAdmin } from "@/supabase/adminClient";
 import { createJWT, createRefreshToken } from "../signIn";
 import { cookies } from "next/headers";
+import { headers } from 'next/headers'
 
 const RATE_LIMIT_SIGN_IN_WINDOW_MS = 300000
 
@@ -12,7 +13,7 @@ export const signIn = async (data: SignIn) => {
 
 	const validData = SignInForm.safeParse(data)
 
-	if (!validData.success){
+	if (!validData.success) {
 		return {
 			success: false,
 			error: 'Sign in payload data invalid',
@@ -22,67 +23,37 @@ export const signIn = async (data: SignIn) => {
 
 	const { email, password } = validData.data
 
-	const { data: signInRate, error: signInRateError } = await supabaseAdmin
-		.from('rate_limits')
-		.select('*')
-		.eq('identifier', email)
-		.eq('event_type', 'sign_in')
-		.gt('window_start', new Date(Date.now() - RATE_LIMIT_SIGN_IN_WINDOW_MS).toISOString())
-		.order('window_start', { ascending: false })
-		.limit(1)
+	const h = await headers()
+	const ip = h.get('x-forwarded-for')?.split(',')[0].trim() ?? h.get('x-real-ip') ?? 'unknown'
 
-	if (signInRateError) {
-		return {
-			success: false,
-			error: 'Unable to fetch sign in rate limit data',
-			accessToken: ''
-		}
+	// Rate limit by IP to prevent an attacker from spreading requests across many
+	// email addresses to bypass per-email limits.
+	const { data: ipRateLimits, error: ipRateLimitError } = await supabaseAdmin.rpc('check_rate_limit', {
+		p_event_type: 'sign.in',
+		p_window_size_ms: RATE_LIMIT_SIGN_IN_WINDOW_MS,
+		p_identifier: ip,
+		p_threshold: 10
+	})
+
+	if (!ipRateLimits || ipRateLimitError) return { success: false, error: 'Unable to fetch rate limits', accessToken: '' }
+	if (!ipRateLimits[0].allowed) {
+		const remainingMinutes = Math.ceil((new Date(ipRateLimits[0].windowend).getTime() - Date.now()) / 60000)
+		return { success: false, error: `Too many attempts, try again in ${remainingMinutes} minutes`, accessToken: '' }
 	}
 
-	const attempts = signInRate.length > 0 ? signInRate[0].attempts : 0
+	// Rate limit by email to prevent an attacker from brute-forcing a single
+	// account's password from many different IP addresses.
+	const { data: emailRateLimits, error: emailRateLimitError } = await supabaseAdmin.rpc('check_rate_limit', {
+		p_event_type: 'sign.in',
+		p_window_size_ms: RATE_LIMIT_SIGN_IN_WINDOW_MS,
+		p_identifier: email,
+		p_threshold: 5
+	})
 
-	if (attempts > 10) {
-		const timeUntilReset = Math.ceil(((new Date(signInRate[0].window_start).getTime() + RATE_LIMIT_SIGN_IN_WINDOW_MS) - Date.now()) / (1000 * 60))
-		return {
-			success: false,
-			error: `To many tries please try again in ${timeUntilReset} minutes`,
-			accessToken: ''
-		}
-	}
-
-	if (attempts === 0) {
-		const { error: signInRateLimitErr } = await supabaseAdmin
-			.from('rate_limits')
-			.insert({
-				identifier: email,
-				attempts: 1,
-				window_start: new Date((Date.now() / RATE_LIMIT_SIGN_IN_WINDOW_MS) * RATE_LIMIT_SIGN_IN_WINDOW_MS).toISOString(),
-				event_type: 'sign_in'
-
-			})
-
-		if (signInRateLimitErr) {
-			return {
-				success: false,
-				error: 'Unable to insert new rate limit row',
-				accessToken: ''
-			}
-		}
-	} else {
-		const { error: signInUpdateLimit } = await supabaseAdmin
-			.from('rate_limits')
-			.update({
-				attempts: attempts + 1
-			})
-			.eq('id', signInRate[0].id)
-
-		if (signInUpdateLimit){
-			return {
-				success: false,
-				error: 'Unable to update rate limit',
-				accessToken: ''
-			}
-		}
+	if (!emailRateLimits || emailRateLimitError) return { success: false, error: 'Unable to fetch rate limits', accessToken: '' }
+	if (!emailRateLimits[0].allowed) {
+		const remainingMinutes = Math.ceil((new Date(emailRateLimits[0].windowend).getTime() - Date.now()) / 60000)
+		return { success: false, error: `Too many attempts, try again in ${remainingMinutes} minutes`, accessToken: '' }
 	}
 
 	const { data: userData, error } = await supabaseAdmin

@@ -7,18 +7,18 @@ CREATE TABLE IF NOT EXISTS roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     CONSTRAINT uq_role UNIQUE (name)
-)
+);
 
-ALTER TABLE roles ENABLE ROW LEVEL SECURITY
+ALTER TABLE roles ENABLE ROW LEVEL SECURITY;
 
 -- Create permissions table
 CREATE TABLE IF NOT EXISTS permissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     CONSTRAINT uq_permission UNIQUE (name)
-)
+);
 
-ALTER TABLE permissions ENABLE ROW LEVEL SECURITY
+ALTER TABLE permissions ENABLE ROW LEVEL SECURITY;
 
 -- Create role_permissions junction table
 CREATE TABLE IF NOT EXISTS role_permissions(
@@ -26,9 +26,9 @@ CREATE TABLE IF NOT EXISTS role_permissions(
     role_id UUID NOT NULL REFERENCES roles(id),
     permission_id UUID NOT NULL REFERENCES permissions(id),
     CONSTRAINT uq_role_permission UNIQUE (role_id, permission_id)
-)
+);
 
-ALTER TABLE role_permissions ENABLE ROW LEVEL SECURITY
+ALTER TABLE role_permissions ENABLE ROW LEVEL SECURITY;
 
 -- Create user_roles table
 CREATE TABLE IF NOT EXISTS user_roles(
@@ -36,9 +36,9 @@ CREATE TABLE IF NOT EXISTS user_roles(
     user_id UUID NOT NULL REFERENCES users(id),
     role_id UUID NOT NULL REFERENCES roles(id),
     CONSTRAINT uq_user_role UNIQUE (user_id, role_id)
-)
+);
 
-ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY
+ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
 
 
 -- RLS policies run on every row, so without caching this function would execute
