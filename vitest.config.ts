@@ -7,6 +7,10 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    env: {
+      JWT_SECRET: 'test-jwt-secret-that-is-long-enough-32b!!',
+      REFRESH_TOKEN_SECRETT: 'test-refresh-secret-long-enough-32b!!',
+    },
   },
   resolve: {
     alias: {

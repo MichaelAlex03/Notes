@@ -3,9 +3,8 @@
 import { supabaseAdmin } from "@/supabase/adminClient";
 import { Confirm, ConfirmForm, SignUp, SignUpForm } from "../schema/schema";
 import { sendVerifyEmail } from "@/app/lib/emails";
-import { createHashedPassword } from "../signUp";
+import { createHashedPassword, generateCode } from "../signUp";
 import { randomInt } from "crypto";
-import { checkRateLimits } from "@/app/auth/lib/server/rateLimit";
 import { headers } from 'next/headers'
 
 const RATE_LIMIT_WINDOW = 300000
@@ -44,7 +43,7 @@ export const signUp = async (data: SignUp) => {
 
     const { password, ...profile } = validData.data
     const securePass = await createHashedPassword(password)
-    const emailCode = randomInt(100000, 1000000)
+    const emailCode = generateCode()
     const newUser = { ...profile, user_password: securePass, email_code: emailCode }
 
 

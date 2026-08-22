@@ -37,7 +37,7 @@ export async function verifyAccessToken(token: string){
 
 export async function verifyRefreshToken(token: string){
 	try{
-		const { payload } = await jwtVerify(token, JWT_SECRET)
+		const { payload } = await jwtVerify(token, REFRESH_SECRET)
 		return payload
 	} catch {
 		return null
