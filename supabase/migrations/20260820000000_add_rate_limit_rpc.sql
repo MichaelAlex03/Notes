@@ -20,7 +20,7 @@ DECLARE
     v_window_start TIMESTAMPTZ;
     v_window_end TIMESTAMPTZ;
 BEGIN
-    SELECT attempts, id, window_start INTO v_attempts, v_id, v_window_start
+    SELECT r.attempts, r.id, r.window_start INTO v_attempts, v_id, v_window_start
     FROM rate_limits r
     WHERE event_type = p_event_type
     AND identifier = p_identifier
@@ -40,10 +40,14 @@ BEGIN
         VALUES (p_event_type, p_identifier, now(), 1);
     ELSE
         UPDATE rate_limits rl
-        SET attempts = attempts + 1
+        SET attempts = v_attempts + 1
         WHERE id = v_id;
     END IF;
 
     RETURN QUERY SELECT true, v_attempts + 1, null::TIMESTAMPTZ;
 END;
 $$ LANGUAGE plpgsql;
+
+REVOKE EXECUTE ON FUNCTION check_rate_limit(TEXT, TEXT, BIGINT, INT) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION check_rate_limit(TEXT, TEXT, BIGINT, INT) TO service_role;
+

@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS permissions (
     CONSTRAINT uq_permission UNIQUE (name)
 );
 
+
 ALTER TABLE permissions ENABLE ROW LEVEL SECURITY;
 
 -- Create role_permissions junction table
@@ -28,6 +29,8 @@ CREATE TABLE IF NOT EXISTS role_permissions(
     CONSTRAINT uq_role_permission UNIQUE (role_id, permission_id)
 );
 
+CREATE INDEX IF NOT EXISTS indx_role_perms_lookup ON role_permissions (role_id);
+
 ALTER TABLE role_permissions ENABLE ROW LEVEL SECURITY;
 
 -- Create user_roles table
@@ -37,6 +40,8 @@ CREATE TABLE IF NOT EXISTS user_roles(
     role_id UUID NOT NULL REFERENCES roles(id),
     CONSTRAINT uq_user_role UNIQUE (user_id, role_id)
 );
+
+CREATE INDEX IF NOT EXISTS indx_user_roles_lookup ON user_roles (user_id);
 
 ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
 
