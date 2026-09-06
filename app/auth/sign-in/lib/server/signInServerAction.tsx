@@ -60,6 +60,7 @@ export const signIn = async (data: SignIn) => {
 		.from('users')
 		.select('user_email, user_password, id')
 		.eq('user_email', email)
+		.eq('authenticated', true)
 		.single()
 
 	if (error || !userData) {
@@ -80,8 +81,8 @@ export const signIn = async (data: SignIn) => {
 		}
 	}
 
-	const accessToken = await createJWT({ id: userData.id });
-	const refreshToken = await createRefreshToken({ id: userData.id });
+	const accessToken = await createJWT({ sub: userData.id, role: 'authenticated' });
+	const refreshToken = await createRefreshToken({ sub: userData.id, role: 'authenticated' });
 
 	const { error: insertError } = await supabaseAdmin
 		.from('users')

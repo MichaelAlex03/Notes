@@ -11,30 +11,30 @@ ALTER TABLE feature_flags ENABLE ROW LEVEL SECURITY;
 CREATE POLICY authenticated_can_view 
 ON feature_flags
 FOR SELECT
-ON authenticated
-USING (true)
+TO authenticated
+USING (true);
 
 -- Create feature_flag_user table
 CREATE TABLE IF NOT EXISTS feature_flag_user (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id),
     flag_id UUID NOT NULL REFERENCES feature_flags (id),
-    enabled BOOLEAN NOT NULL DEFAULT FALSE
+    enabled BOOLEAN NOT NULL DEFAULT FALSE,
     CONSTRAINT uq_user_flag UNIQUE (user_id, flag_id)
 );
 
 -- Composite index: flag_id first (join column), user_id second to pin to a specific user.
 -- Covers the LEFT JOIN from feature_flags → feature_flag_user used in the RPC.
 -- A missing row means no override — treated as false via COALESCE in the query.
-CREATE INDEX IF NOT EXISTS idx_lookup_flag ON feature_flag_user (flag_id, user_id)
+CREATE INDEX IF NOT EXISTS idx_lookup_flag ON feature_flag_user (flag_id, user_id);
 
 ALTER TABLE feature_flag_user ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY can_view_own_feature
 ON feature_flag_user
 FOR SELECT
-ON authenticated
-USING (user_id = auth.uid())
+TO authenticated
+USING (user_id = auth.uid());
 
 
 -- COALESCE(uf.enabled, false): users without an override row produce a null from the LEFT JOIN.

@@ -8,7 +8,8 @@ export const SignInForm = z.object({
 export type SignIn = z.infer<typeof SignInForm>
 
 export const JWTPayload = z.object({
-    id: z.string()
+    sub: z.string(),
+    role: z.literal('authenticated')
 })
 
 export type JWT = z.infer<typeof JWTPayload>
