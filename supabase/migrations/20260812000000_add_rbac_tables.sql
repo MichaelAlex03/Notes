@@ -24,8 +24,8 @@ ALTER TABLE permissions ENABLE ROW LEVEL SECURITY;
 -- Create role_permissions junction table
 CREATE TABLE IF NOT EXISTS role_permissions(
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    role_id UUID NOT NULL REFERENCES roles(id),
-    permission_id UUID NOT NULL REFERENCES permissions(id),
+    role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    permission_id UUID NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
     CONSTRAINT uq_role_permission UNIQUE (role_id, permission_id)
 );
 
@@ -36,8 +36,8 @@ ALTER TABLE role_permissions ENABLE ROW LEVEL SECURITY;
 -- Create user_roles table
 CREATE TABLE IF NOT EXISTS user_roles(
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id),
-    role_id UUID NOT NULL REFERENCES roles(id),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
     CONSTRAINT uq_user_role UNIQUE (user_id, role_id)
 );
 

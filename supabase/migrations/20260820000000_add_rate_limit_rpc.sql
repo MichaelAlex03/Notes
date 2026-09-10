@@ -30,7 +30,7 @@ BEGIN
 
     v_window_end := v_window_start + (p_window_size_ms * interval '1 millisecond');
 
-    IF v_attempts > p_threshold THEN
+    IF v_attempts >= p_threshold THEN
         RETURN QUERY SELECT false, v_attempts, v_window_end;
         RETURN;
     END IF;

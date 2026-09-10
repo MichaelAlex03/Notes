@@ -17,8 +17,8 @@ USING (true);
 -- Create feature_flag_user table
 CREATE TABLE IF NOT EXISTS feature_flag_user (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id),
-    flag_id UUID NOT NULL REFERENCES feature_flags (id),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    flag_id UUID NOT NULL REFERENCES feature_flags (id) ON DELETE CASCADE,
     enabled BOOLEAN NOT NULL DEFAULT FALSE,
     CONSTRAINT uq_user_flag UNIQUE (user_id, flag_id)
 );

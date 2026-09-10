@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS notes (
     notes_content TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    user_id UUID NOT NULL REFERENCES users(id),
-    folder_id UUID NOT NULL REFERENCES folders(id)
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    folder_id UUID NOT NULL REFERENCES folders(id) ON DELETE CASCADE
 );
 
