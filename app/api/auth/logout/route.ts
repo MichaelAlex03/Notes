@@ -7,6 +7,7 @@ export async function POST(request: NextRequest) {
     const refreshToken = cookieStore.get('refresh_token')?.value
 
     cookieStore.delete('refresh_token')
+    cookieStore.delete('access_token')
 
     if (!refreshToken) {
         return new NextResponse(null, { status: 204 })

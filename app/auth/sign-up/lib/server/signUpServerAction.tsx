@@ -132,9 +132,18 @@ export const verifySignUp = async (verifyEmailData: Confirm) => {
 
     const { data, error } = await supabaseAdmin
         .from('users')
-        .select('email_code')
+        .select('email_code, email_expiration')
         .eq('user_email', email)
         .single()
+
+    const expirationTime = data?.email_expiration ? data.email_expiration : null
+
+    if (!expirationTime || new Date(expirationTime).getTime() < Date.now()){
+        return {
+            success: false,
+            error: 'Code expired. Resend email'
+        }
+    }
 
     if (error || code != (String(data.email_code) ?? '')) {
         return {
@@ -142,6 +151,8 @@ export const verifySignUp = async (verifyEmailData: Confirm) => {
             error: 'Incorrect code entered. Please try again'
         }
     }
+
+
 
     const { error: signUpError } = await supabaseAdmin
         .from('users')
@@ -166,6 +177,43 @@ export const verifySignUp = async (verifyEmailData: Confirm) => {
 
 export const resendEmail = async (email: string) => {
 
+    const h = await headers()
+    const ip = h.get('x-forwarded-for')?.split(',')[0].trim() ?? h.get('x-real-ip') ?? 'unknown'
+
+    const { data: ipRateLimits, error: ipRateLimitError } = await supabaseAdmin.rpc('check_rate_limit', {
+        p_event_type: 'verify.resend',
+        p_window_size_ms: RATE_LIMIT_WINDOW,
+        p_identifier: ip,
+        p_threshold: 10
+    })
+
+    if (!ipRateLimits || ipRateLimitError) {
+        return {
+            success: false,
+            error: 'Unable to fetch rate limits'
+        }
+    }
+
+    const remainingMinutes = Math.ceil((new Date(ipRateLimits[0].windowend).getTime() - Date.now()) / (1000 * 60))
+    if (!ipRateLimits[0].allowed) return { success: false, error: `Too many attempts try again in ${remainingMinutes}` }
+
+    const { data: emailRateLimits, error: emailRateLimitError } = await supabaseAdmin.rpc('check_rate_limit', {
+        p_event_type: 'verify.sign.up',
+        p_window_size_ms: RATE_LIMIT_WINDOW,
+        p_identifier: email,
+        p_threshold: 10
+    })
+
+    if (!emailRateLimits || emailRateLimitError) {
+        return {
+            success: false,
+            error: 'Unable to fetch rate limits'
+        }
+    }
+
+    const emailRemainingMinutes = Math.ceil(new Date(emailRateLimits[0].windowend).getTime() - Date.now() / (1000 * 60))
+    if (!emailRateLimits[0].allowed) return { success: false, error: `Too many attempts try again in ${emailRemainingMinutes}` }
+
     const emailCode = randomInt(100000, 1000000)
 
 
@@ -175,7 +223,6 @@ export const resendEmail = async (email: string) => {
         .eq('user_email', email)
 
     if (error) {
-        console.error('Supabase insert error:', error)
         return {
             success: false,
             error: 'Cannot add new user'

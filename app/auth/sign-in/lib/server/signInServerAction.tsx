@@ -17,7 +17,6 @@ export const signIn = async (data: SignIn) => {
 		return {
 			success: false,
 			error: 'Sign in payload data invalid',
-			accessToken: ''
 		}
 	}
 
@@ -35,10 +34,10 @@ export const signIn = async (data: SignIn) => {
 		p_threshold: 10
 	})
 
-	if (!ipRateLimits || ipRateLimitError) return { success: false, error: 'Unable to fetch rate limits', accessToken: '' }
+	if (!ipRateLimits || ipRateLimitError) return { success: false, error: 'Unable to fetch rate limits' }
 	if (!ipRateLimits[0].allowed) {
 		const remainingMinutes = Math.ceil((new Date(ipRateLimits[0].windowend).getTime() - Date.now()) / 60000)
-		return { success: false, error: `Too many attempts, try again in ${remainingMinutes} minutes`, accessToken: '' }
+		return { success: false, error: `Too many attempts, try again in ${remainingMinutes} minutes` }
 	}
 
 	// Rate limit by email to prevent an attacker from brute-forcing a single
@@ -50,10 +49,10 @@ export const signIn = async (data: SignIn) => {
 		p_threshold: 5
 	})
 
-	if (!emailRateLimits || emailRateLimitError) return { success: false, error: 'Unable to fetch rate limits', accessToken: '' }
+	if (!emailRateLimits || emailRateLimitError) return { success: false, error: 'Unable to fetch rate limits' }
 	if (!emailRateLimits[0].allowed) {
 		const remainingMinutes = Math.ceil((new Date(emailRateLimits[0].windowend).getTime() - Date.now()) / 60000)
-		return { success: false, error: `Too many attempts, try again in ${remainingMinutes} minutes`, accessToken: '' }
+		return { success: false, error: `Too many attempts, try again in ${remainingMinutes} minutes` }
 	}
 
 	const { data: userData, error } = await supabaseAdmin
@@ -77,7 +76,6 @@ export const signIn = async (data: SignIn) => {
 		return {
 			success: false,
 			'error': 'Incorrect password',
-			accessToken: ''
 		}
 	}
 
@@ -96,26 +94,32 @@ export const signIn = async (data: SignIn) => {
 		return {
 			success: false,
 			'error': 'Unable to insert refresh token',
-			accessToken: ''
 		}
 	}
 
 	const cookieStore = await cookies();
+
+	cookieStore.set('access_token', accessToken, {
+		httpOnly: true,
+		secure: process.env.NODE_ENV === 'production',
+		sameSite: 'strict',
+		path: '/', 
+		maxAge: 60 * 5, // 5 min
+	})
 
 	// 2. Refresh Token Cookie
 	cookieStore.set('refresh_token', refreshToken, {
 		httpOnly: true,
 		secure: process.env.NODE_ENV === 'production',
 		sameSite: 'lax',
-		path: '/api/auth', // CRITICAL: Only sent to the refresh API route and logout to invalidate it in DB
-		maxAge: 60 * 60 * 24 * 7, // 7 days
+		path: '/', 
+		maxAge: 60 * 30, 
 	});
 
 
 	return {
 		success: true,
 		'error': '',
-		accessToken
 	}
 
 }

@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from "jose"
 import { JWT } from "./schemas/schema"
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET)
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_TOKEN_SECRET)
 const REFRESH_SECRET = new TextEncoder().encode(process.env.REFRESH_TOKEN_SECRETT)
 
 

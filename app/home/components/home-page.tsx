@@ -1,6 +1,5 @@
 'use client'
 
-import { useAuth } from '@/app/context/auth-context'
 import { supabaseClient } from '@/supabase/client'
 import { useEffect, useState } from 'react'
 
@@ -59,28 +58,10 @@ const sidebarItemBase: React.CSSProperties = {
 }
 
 export default function HomePage() {
-    const { accessToken } = useAuth()
     const [folders, setFolders] = useState<Folder[]>([])
     const [notes, setNotes] = useState<Note[]>([])
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
-
-    useEffect(() => {
-        if (!accessToken) return
-        const client = supabaseClient(accessToken)
-
-        const fetchData = async () => {
-            const [{ data: foldersData }, { data: notesData }] = await Promise.all([
-                client.from('folders').select('*').order('created_at', { ascending: true }),
-                client.from('notes').select('*').order('updated_at', { ascending: false }),
-            ])
-            if (foldersData) setFolders(foldersData)
-            if (notesData) setNotes(notesData)
-            setLoading(false)
-        }
-
-        fetchData()
-    }, [accessToken])
 
     const visibleNotes = selectedFolderId
         ? notes.filter(n => n.folder_id === selectedFolderId)
