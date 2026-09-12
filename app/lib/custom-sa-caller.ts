@@ -1,9 +1,12 @@
 import { verifyAccessToken } from "../auth/sign-in/lib/signIn"
 import { refresh } from "./refresh"
 import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 
+
+// redirect() throws internally — if you wrap this call in a try/catch you must
+// explicitly re-throw the redirect error, otherwise the redirect is swallowed.
 export const customSACaller = async () => {
-
 
     const cookieStore = await cookies()
 
@@ -11,17 +14,11 @@ export const customSACaller = async () => {
     const refreshToken = cookieStore.get('refresh_token') ?? null
 
     if (!accessToken) {
-        return {
-            success: false,
-            error: 'No access token'
-        }
+        redirect('/auth/sign-in')
     }
 
     if (!refreshToken) {
-        return {
-            success: false,
-            error: 'No refresh token'
-        }
+        redirect('/auth/sign-in')
     }
 
     let isValidJwt = false;
@@ -35,10 +32,7 @@ export const customSACaller = async () => {
     if (!isValidJwt) {
         const refreshResult = await refresh(refreshToken.value)
         if (!refreshResult.success) {
-            return {
-                success: false,
-                error: 'Unable to generate a new access token'
-            }
+           redirect('/auth/sign-in')
         }
 
         cookieStore.set('access_token', refreshResult.newAccess, {
