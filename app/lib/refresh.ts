@@ -38,6 +38,15 @@ export const refresh = async (refreshToken: string) => {
             })
             .eq('id', payload.sub as string)
 
+        if (removeRefreshError) {
+            return {
+                success: false,
+                error: 'Unable to set refresh token to null. Urgent!!!',
+                newRefresh: '',
+                newAccess: ''
+            }
+        }
+
         return {
             success: false,
             error: 'Expired or old refresh token being used',
