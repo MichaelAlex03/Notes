@@ -336,6 +336,20 @@ export type Database = {
           windowend: string
         }[]
       }
+      get_users_with_flag_override: {
+        Args: {
+          p_flag_id: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+        }
+        Returns: {
+          enabled: boolean
+          first_name: string
+          id: string
+          last_name: string
+        }[]
+      }
       has_permission: { Args: { permission_name: string }; Returns: boolean }
       has_role: { Args: { p_role_name: string }; Returns: boolean }
       is_feature_enabled: { Args: { p_flag_name: string }; Returns: boolean }
