@@ -29,6 +29,15 @@ export const refresh = async (refreshToken: string) => {
     }
 
     if (userData?.refresh_token !== refreshToken) {
+
+        // Invalidate current refresh token because it has been stolen
+        const { error: removeRefreshError } = await supabaseAdmin
+            .from('users')
+            .update({
+                refresh_token: null
+            })
+            .eq('id', payload.sub as string)
+
         return {
             success: false,
             error: 'Expired or old refresh token being used',
