@@ -1,3 +1,4 @@
+import { customSACaller } from "@/app/lib/custom-sa-caller";
 import { supabaseClient } from "@/supabase/client"
 
 interface FeatureFlagResults {
@@ -39,6 +40,8 @@ interface FetchUserProps {
 }
 
 export const fetchUsers = async ({ page, flagId, searchQuery }: FetchUserProps): Promise<UserResults> => {
+    await customSACaller()
+    
     const client = supabaseClient()
 
     const limit = 50

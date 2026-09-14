@@ -48,8 +48,8 @@ export const customSACaller = async () => {
             maxAge: 60 * 30,
         });
 
+    } else {
+        redirect('/auth/sign-in')
     }
-
-    return { success: true, error: '' }
 
 }
