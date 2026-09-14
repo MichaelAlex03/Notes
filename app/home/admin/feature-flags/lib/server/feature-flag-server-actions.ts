@@ -34,10 +34,14 @@ export const enableUserAccess = async (flagId: string, userId: string, enabled: 
 
     const client = supabaseClient()
 
+    // Defense-in-depth: RLS already blocks non-admins at the DB level, but checking here
+    // avoids a wasted round trip and makes the intent of this action explicit.
     const { data: checkAdmin, error: checkAdminError } = await client.rpc('has_role', {
         p_role_name: 'admin'
     })
 
+    // Separate the RPC failure from the authorization failure so callers can distinguish
+    // between "we couldn't determine your role" and "you're definitely not an admin".
     if (checkAdminError) {
         return {
             success: false,
@@ -52,6 +56,8 @@ export const enableUserAccess = async (flagId: string, userId: string, enabled: 
         }
     }
 
+    // Users have no row in feature_flag_user by default, so we check first and insert
+    // if missing, otherwise update the existing row.
     const { data: userFeatureFlag, error: userFeatureFlagError } = await client
         .from('feature_flag_user')
         .select('id')
