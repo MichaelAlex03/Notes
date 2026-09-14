@@ -17,17 +17,13 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL('/auth/sign-in', request.url))
     }
 
-    let isValidJwt = false;
-    if (accessTokenCookie) {
-        try {
-            isValidJwt = await verifyAccessToken(accessTokenCookie.value) ? true : false
-        } catch (error) {
-            isValidJwt = false
-        }
-    }
+    
+        
+    const result = await verifyAccessToken(accessTokenCookie.value)
+      
 
     let response;
-    if (!isValidJwt) {
+    if (!result.payload && result.expired) {
         const result = await refresh(refreshToken.value)
         if (!result.success) {
             return NextResponse.redirect(new URL('/auth/sign-in', request.url))

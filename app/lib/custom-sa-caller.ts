@@ -21,18 +21,14 @@ export const customSACaller = async () => {
         redirect('/auth/sign-in')
     }
 
-    let isValidJwt = false;
-    try {
-        isValidJwt = await verifyAccessToken(accessToken.value) ? true : false
-    } catch (error) {
-        isValidJwt = false
-    }
+    const result = await verifyAccessToken(accessToken.value) 
 
-
-    if (!isValidJwt) {
+    // Refresh only on a genuinely expired token — an attacker must present a structurally valid
+    // access token to reach this path, so a bare refresh token alone isn't enough to authenticate.
+    if (!result.payload && result.expired) {
         const refreshResult = await refresh(refreshToken.value)
         if (!refreshResult.success) {
-           redirect('/auth/sign-in')
+            redirect('/auth/sign-in')
         }
 
         cookieStore.set('access_token', refreshResult.newAccess, {
