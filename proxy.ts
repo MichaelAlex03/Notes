@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifyAccessToken } from './auth/sign-in/lib/signIn'
-import { refresh } from './lib/refresh';
+import { verifyAccessToken } from './app/auth/sign-in/lib/signIn'
+import { refresh } from './app/lib/refresh';
 
 // This function can be marked `async` if using `await` inside
 export async function proxy(request: NextRequest) {
 
     const accessTokenCookie = request.cookies.get('access_token') ?? null
     const refreshToken = request.cookies.get('refresh_token') ?? null
+
 
     if (!accessTokenCookie) {
         return NextResponse.redirect(new URL('/auth/sign-in', request.url))
@@ -17,11 +18,8 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL('/auth/sign-in', request.url))
     }
 
-    
-        
     const result = await verifyAccessToken(accessTokenCookie.value)
-      
-
+    
     let response;
     if (!result.payload && result.expired) {
         const result = await refresh(refreshToken.value)
@@ -35,15 +33,16 @@ export async function proxy(request: NextRequest) {
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             path: '/',
-            maxAge: 60 * 5,
+            maxAge: 60 * 30,
         })
         response.cookies.set('refresh_token', result.newRefresh, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
             path: '/',
-            maxAge: 60 * 30,
+            maxAge: 60 * 60,
         })
+    
     }
 
 

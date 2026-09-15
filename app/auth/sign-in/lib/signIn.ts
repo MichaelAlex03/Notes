@@ -2,7 +2,7 @@ import { SignJWT, jwtVerify, errors } from "jose"
 import { JWT } from "./schemas/schema"
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_TOKEN_SECRET)
-const REFRESH_SECRET = new TextEncoder().encode(process.env.REFRESH_TOKEN_SECRETT)
+const REFRESH_SECRET = new TextEncoder().encode(process.env.REFRESH_TOKEN_SECRET)
 
 
 export async function createJWT(payload: JWT) {
@@ -19,7 +19,7 @@ export async function createRefreshToken(payload: JWT) {
 	return await new SignJWT(payload)
 		.setProtectedHeader({ alg: 'HS256' })
 		.setIssuedAt()
-		.setExpirationTime('7d')
+		.setExpirationTime('1h')
 		.sign(REFRESH_SECRET)
 
 }

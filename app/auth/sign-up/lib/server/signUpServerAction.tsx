@@ -44,7 +44,12 @@ export const signUp = async (data: SignUp) => {
     const { password, ...profile } = validData.data
     const securePass = await createHashedPassword(password)
     const emailCode = generateCode()
-    const newUser = { ...profile, user_password: securePass, email_code: emailCode }
+    const newUser = {
+        ...profile,
+        user_password: securePass,
+        email_code: emailCode,
+        email_expiration: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+    }
 
 
 
@@ -138,7 +143,7 @@ export const verifySignUp = async (verifyEmailData: Confirm) => {
 
     const expirationTime = data?.email_expiration ? data.email_expiration : null
 
-    if (!expirationTime || new Date(expirationTime).getTime() < Date.now()){
+    if (!expirationTime || new Date(expirationTime).getTime() < Date.now()) {
         return {
             success: false,
             error: 'Code expired. Resend email'

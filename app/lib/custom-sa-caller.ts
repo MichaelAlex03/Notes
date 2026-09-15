@@ -31,21 +31,29 @@ export const customSACaller = async () => {
             redirect('/auth/sign-in')
         }
 
+        // Timeout cookie — maxAge just needs to exceed the JWT expiration (5m) so the cookie
+        // is still present when the next request checks it. A missing cookie and an expired
+        // JWT look identical (both redirect), so the cookie must outlive the token to give us
+        // the window to detect expiry and refresh. Adjust this value as needed — the JWT
+        // expiration is the real auth boundary, the cookie is just the delivery mechanism.
         cookieStore.set('access_token', refreshResult.newAccess, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             path: '/',
-            maxAge: 60 * 5, // 5 min
+            maxAge: 60 * 30,
         })
 
-        // 2. Refresh Token Cookie
+        // Refresh token cookie maxAge matches the JWT expiration — once either expires the
+        // session is over anyway, so keeping them in sync avoids a dangling cookie.
+        // The access token cookie being the shorter-lived value is what effectively caps
+        // how long a session can stay alive between requests.
         cookieStore.set('refresh_token', refreshResult.newRefresh, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
             path: '/',
-            maxAge: 60 * 30,
+            maxAge: 60 * 60,
         });
 
     } else {

@@ -104,7 +104,7 @@ export const signIn = async (data: SignIn) => {
 		secure: process.env.NODE_ENV === 'production',
 		sameSite: 'strict',
 		path: '/', 
-		maxAge: 60 * 5, // 5 min
+		maxAge: 60 * 30, // 30 min
 	})
 
 	// 2. Refresh Token Cookie
@@ -113,7 +113,7 @@ export const signIn = async (data: SignIn) => {
 		secure: process.env.NODE_ENV === 'production',
 		sameSite: 'lax',
 		path: '/', 
-		maxAge: 60 * 30, 
+		maxAge: 60 * 60, 
 	});
 
 
