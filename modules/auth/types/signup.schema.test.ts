@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SignUpForm } from './schema'
+import { SignUpForm } from './sign-up-schema'
 
 
 describe('SignUp schema validation', () => {

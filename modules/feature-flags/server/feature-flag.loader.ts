@@ -1,4 +1,4 @@
-import { customSACaller } from "@/app/lib/custom-sa-caller";
+import { customSACaller } from "@/modules/auth";
 import { supabaseClient } from "@/supabase/client"
 
 interface FeatureFlagResults {

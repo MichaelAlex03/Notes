@@ -1,9 +1,9 @@
 'use server'
 
 import bcrypt from "bcryptjs";
-import { SignIn, SignInForm } from "../schemas/schema"
+import { SignIn, SignInForm } from "../types/sign-in-schema"
 import { supabaseAdmin } from "@/supabase/adminClient";
-import { createJWT, createRefreshToken } from "../signIn";
+import { createJWT, createRefreshToken } from "../lib/signIn";
 import { cookies } from "next/headers";
 import { headers } from 'next/headers'
 

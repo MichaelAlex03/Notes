@@ -1,13 +1,11 @@
-import { adminGuard } from '@/app/lib/adminGuard'
+import { adminGuard } from '@/modules/auth'
 import { notFound } from 'next/navigation'
-import React from 'react'
-import FeatureFlagHome from './components/feature-flag-home'
+import { FeatureFlagHome } from '@/modules/feature-flags'
 
 const page = () => {
     if (!adminGuard()){
         return notFound()
     }
-
 
     return (
         <FeatureFlagHome />

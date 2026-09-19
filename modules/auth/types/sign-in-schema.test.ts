@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SignInForm, JWTPayload } from './schema'
+import { SignInForm, JWTPayload } from './sign-in-schema'
 
 describe('SignInForm', () => {
     describe('valid inputs', () => {
