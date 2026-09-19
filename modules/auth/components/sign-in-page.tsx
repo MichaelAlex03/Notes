@@ -1,9 +1,9 @@
 'use client'
 
 import { useForm, SubmitHandler } from "react-hook-form"
-import { SignIn, SignInForm } from "../lib/schemas/schema";
+import { SignIn, SignInForm } from "../types/sign-in-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signIn } from "../lib/server/signInServerAction";
+import { signIn } from "../server-actions/signInServerAction";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 

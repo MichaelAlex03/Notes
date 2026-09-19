@@ -1,9 +1,9 @@
 'use server'
 
 import { supabaseAdmin } from "@/supabase/adminClient";
-import { Confirm, ConfirmForm, SignUp, SignUpForm } from "../schema/schema";
-import { sendVerifyEmail } from "@/app/lib/emails";
-import { createHashedPassword, generateCode } from "../signUp";
+import { Confirm, ConfirmForm, SignUp, SignUpForm } from "../types/sign-up-schema";
+import { sendVerifyEmail } from "../lib/emails";
+import { createHashedPassword, generateCode } from "../lib/signUp";
 import { randomInt } from "crypto";
 import { headers } from 'next/headers'
 
@@ -69,6 +69,9 @@ export const signUp = async (data: SignUp) => {
      * sendVerifyEmail throws an Error class instance on failure.
      * Next.js cannot serialize class instances across the server action boundary,
      * so we catch it here and return a plain object instead.
+     *
+     * NOTE: Resend is in test mode — emails can only be sent to michaelalex03@outlook.com
+     * (the address registered with Resend). Sign-ups with any other email will fail here.
      */
     try {
         await sendVerifyEmail(newUser.user_email, emailCode)
@@ -234,6 +237,7 @@ export const resendEmail = async (email: string) => {
         }
     }
 
+    // NOTE: Resend test mode — only michaelalex03@outlook.com can receive emails
     try {
         await sendVerifyEmail(email, emailCode)
     } catch (error) {

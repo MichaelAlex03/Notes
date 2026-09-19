@@ -1,4 +1,4 @@
-import { verifyAccessToken } from "../auth/sign-in/lib/signIn"
+import { verifyAccessToken } from "./signIn"
 import { refresh } from "./refresh"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"

@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/supabase/adminClient';
-import { createJWT, createRefreshToken, verifyRefreshToken } from '../auth/sign-in/lib/signIn';
+import { createJWT, createRefreshToken, verifyRefreshToken } from './signIn';
 
 export const refresh = async (refreshToken: string) => {
 

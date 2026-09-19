@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react"
 import { useForm, SubmitHandler, Controller } from "react-hook-form"
 import { Button, FormHelperText, TextField } from "@mui/material"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Confirm, ConfirmForm } from "../lib/schema/schema"
-import { resendEmail, verifySignUp } from "../lib/server/signUpServerAction"
+import { Confirm, ConfirmForm } from "../types/sign-up-schema"
+import { resendEmail, verifySignUp } from "../server-actions/signUpServerAction"
 import { useRouter, useSearchParams } from "next/navigation"
 
 const CODE_LENGTH = 6

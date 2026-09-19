@@ -1,6 +1,7 @@
 import { adminGuard } from '@/app/lib/adminGuard'
 import { notFound } from 'next/navigation'
 import React from 'react'
+import FeatureFlagHome from './components/feature-flag-home'
 
 const page = () => {
     if (!adminGuard()){
@@ -9,7 +10,7 @@ const page = () => {
 
 
     return (
-        <div>page</div>
+        <FeatureFlagHome />
     )
 }
 

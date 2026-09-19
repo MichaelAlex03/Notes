@@ -67,7 +67,7 @@ export const fetchUsers = async ({ page, flagId, searchQuery }: FetchUserProps):
         id: u.id,
         first_name: u.first_name,
         last_name: u.last_name,
-        enabled: false
+        enabled: u.enabled
     }))
 
     return {
