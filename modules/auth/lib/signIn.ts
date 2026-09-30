@@ -1,8 +1,8 @@
 import { SignJWT, jwtVerify, errors } from "jose"
 import { JWT } from "../types/sign-in-schema"
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_TOKEN_SECRET)
-const REFRESH_SECRET = new TextEncoder().encode(process.env.REFRESH_TOKEN_SECRET)
+const JWT_SECRET = new TextEncoder().encode(process.env.NODE_ENV === 'development' ? process.env.LOCAL_JWT_TOKEN_SECRET : process.env.JWT_TOKEN_SECRET)
+const REFRESH_SECRET = new TextEncoder().encode(process.env.NODE_ENV === 'development' ? process.env.LOCAL_REFRESH_SECRET : process.env.REFRESH_TOKEN_SECRET)
 
 
 export async function createJWT(payload: JWT) {

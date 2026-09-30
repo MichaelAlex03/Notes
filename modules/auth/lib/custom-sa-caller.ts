@@ -13,6 +13,7 @@ export const customSACaller = async () => {
     const accessToken = cookieStore.get('access_token') ?? null
     const refreshToken = cookieStore.get('refresh_token') ?? null
 
+
     if (!accessToken) {
         redirect('/auth/sign-in')
     }
@@ -22,7 +23,6 @@ export const customSACaller = async () => {
     }
 
     const result = await verifyAccessToken(accessToken.value) 
-
     // Refresh only on a genuinely expired token — an attacker must present a structurally valid
     // access token to reach this path, so a bare refresh token alone isn't enough to authenticate.
     if (!result.payload && result.expired) {
@@ -56,8 +56,8 @@ export const customSACaller = async () => {
             maxAge: 60 * 60,
         });
 
-    } else {
+    } else if(!result.payload && !result.expired){
         redirect('/auth/sign-in')
-    }
+    } 
 
 }

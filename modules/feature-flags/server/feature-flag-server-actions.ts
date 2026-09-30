@@ -3,11 +3,15 @@
 import { customSACaller } from "@/modules/auth"
 import { supabaseClient } from "@/supabase/client"
 import { type Error } from "@/app/types/errors"
+import { cookies } from "next/headers"
 
 
 export const enableGlobalAccess = async (flagId: string, enabled: boolean): Promise<Error> => {
     await customSACaller()
-    const client = supabaseClient()
+    const cookieStore = await cookies();
+    const jwt = cookieStore.get('access_token')?.value
+
+    const client = supabaseClient(jwt)
 
     // Defense-in-depth: RLS already blocks non-admins at the DB level, but checking here
     // avoids a wasted round trip and makes the intent of this action explicit.
@@ -54,7 +58,9 @@ export const enableGlobalAccess = async (flagId: string, enabled: boolean): Prom
 export const enableUserAccess = async (flagId: string, userId: string, enabled: boolean): Promise<Error> => {
     await customSACaller()
 
-    const client = supabaseClient()
+    const cookieStore = await cookies();
+    const jwt = cookieStore.get('access_token')?.value
+    const client = supabaseClient(jwt)
 
     // Defense-in-depth: RLS already blocks non-admins at the DB level, but checking here
     // avoids a wasted round trip and makes the intent of this action explicit.

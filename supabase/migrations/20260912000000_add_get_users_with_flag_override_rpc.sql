@@ -26,6 +26,7 @@ AS $$
     ON u.id = uf.user_id
     AND uf.flag_id = p_flag_id
     WHERE (p_search IS NULL OR u.first_name ILIKE '%' || p_search || '%' OR u.last_name ILIKE '%' || p_search || '%')
+    ORDER BY u.first_name, u.last_name
     LIMIT p_limit + 1
     OFFSET p_offset;
 $$;
