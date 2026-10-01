@@ -1,18 +1,21 @@
-import { adminGuard } from '@/modules/auth'
-import { notFound, redirect } from 'next/navigation'
+
+import { redirect } from 'next/navigation'
 import { FeatureFlagHome, getFeatureFlags, getUsers } from '@/modules/feature-flags'
 import { supabaseClient } from '@/supabase/client';
+import { extractJwt } from '@/modules/shared/extract-jwt';
 
 interface FeatureFlagsProps {
     params: Promise<{ page: string | undefined, flagId: string | undefined, searchQuery: string | undefined }>;
 }
 
 const page = async ({ params }: FeatureFlagsProps) => {
-    const client = supabaseClient()
+    
+    const client = supabaseClient(await extractJwt())
 
     const { data: permissionCheck, error: permissionError } = await client.rpc('has_permission', {
         permission_name: 'feature-flag.manage'
     })
+
 
     if (permissionError || !permissionCheck){
         redirect('/home/admin')

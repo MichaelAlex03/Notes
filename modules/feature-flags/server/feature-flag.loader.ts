@@ -1,6 +1,6 @@
 import { customSACaller } from "@/modules/auth";
 import { supabaseClient } from "@/supabase/client"
-import { cookies } from "next/headers";
+import { extractJwt } from "@/modules/shared/extract-jwt";
 
 interface FeatureFlagResults {
     id: string;
@@ -9,9 +9,7 @@ interface FeatureFlagResults {
 }
 
 export const fetchFeatureFlags = async (): Promise<FeatureFlagResults[]> => {
-    const cookieStore = await cookies()
-    const jwt = cookieStore.get('access_token')?.value
-    const client = supabaseClient(jwt)
+    const client = supabaseClient(await extractJwt())
 
     const { data: featureFlags, error: featureFlagErrors } = await client
         .from('feature_flags')
@@ -43,10 +41,7 @@ interface FetchUserProps {
 }
 
 export const fetchUsers = async ({ page, flagId, searchQuery }: FetchUserProps): Promise<UserResults> => {
-
-    const cookieStore = await cookies()
-    const jwt = cookieStore.get('access_token')?.value
-    const client = supabaseClient(jwt)
+    const client = supabaseClient(await extractJwt())
 
     const limit = 50
     const offset = (page - 1) * limit
