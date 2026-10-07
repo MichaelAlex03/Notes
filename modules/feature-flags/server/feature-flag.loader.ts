@@ -1,4 +1,3 @@
-import { customSACaller } from "@/modules/auth";
 import { supabaseClient } from "@/supabase/client"
 import { extractJwt } from "@/modules/shared/extract-jwt";
 
@@ -60,7 +59,7 @@ export const fetchUsers = async ({ page, flagId, searchQuery }: FetchUserProps):
     }
 
     moreData = userResults.length > limit ? true : false
-    const users = moreData ? userResults.slice(-1) : userResults
+    const users = moreData ? userResults.slice(0, limit) : userResults
 
     const res = users.map((u) => ({
         id: u.id,

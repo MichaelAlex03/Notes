@@ -1,7 +1,6 @@
 'use client'
 
-import { supabaseClient } from '@/supabase/client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 type Folder = {
     id: string
@@ -41,26 +40,10 @@ function getRelativeTime(dateString: string): string {
     return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-const inputStyle: React.CSSProperties = {
-    background: 'rgba(232,213,183,0.07)',
-    border: '1px solid transparent',
-    color: 'rgba(232,213,183,0.6)',
-    fontFamily: 'inherit',
-    outline: 'none',
-}
-
-const sidebarItemBase: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: 7,
-    padding: '6px 8px', borderRadius: 6,
-    cursor: 'pointer', fontSize: 12.5,
-    transition: 'background 0.1s, color 0.1s',
-    userSelect: 'none',
-}
-
 export default function HomePage() {
     const [folders, setFolders] = useState<Folder[]>([])
     const [notes, setNotes] = useState<Note[]>([])
-    const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
+    const [selectedFolderId] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
 
     const visibleNotes = selectedFolderId
@@ -72,72 +55,6 @@ export default function HomePage() {
         : 'All Notes'
 
     return (
-        <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
-
-            {/* ── Sidebar ───────────────────────── */}
-            <aside style={{ width: 216, minWidth: 216, background: '#2D2318', display: 'flex', flexDirection: 'column', height: '100vh', borderRight: '1px solid rgba(232,213,183,0.08)', flexShrink: 0 }}>
-
-                <div style={{ padding: '20px 14px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#E8D5B7', fontSize: 14, fontWeight: 600, letterSpacing: -0.2 }}>
-                        <span>✎</span> notes
-                    </div>
-                    <button style={{ width: 26, height: 26, borderRadius: 6, border: 'none', background: '#4A3929', color: 'rgba(232,213,183,0.7)', fontSize: 17, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        +
-                    </button>
-                </div>
-
-                <input placeholder="⌕  Search" style={{ ...inputStyle, margin: '0 10px 6px', borderRadius: 7, padding: '6px 10px', fontSize: 12, width: 'calc(100% - 20px)' }} />
-
-                <div style={{ padding: '2px 6px 0' }}>
-                    <div
-                        onClick={() => setSelectedFolderId(null)}
-                        style={{ ...sidebarItemBase, background: selectedFolderId === null ? '#4A3929' : 'transparent', color: selectedFolderId === null ? '#E8D5B7' : 'rgba(232,213,183,0.6)' }}
-                    >
-                        <span style={{ fontSize: 11, width: 15, textAlign: 'center' }}>◈</span> All Notes
-                    </div>
-                    <div style={{ ...sidebarItemBase, color: 'rgba(232,213,183,0.6)' }}>
-                        <span style={{ fontSize: 11, width: 15, textAlign: 'center' }}>★</span> Starred
-                    </div>
-                </div>
-
-                <div style={{ padding: '14px 14px 4px', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' as const, color: 'rgba(232,213,183,0.35)' }}>
-                    Folders
-                </div>
-
-                <div style={{ flex: 1, overflowY: 'auto', padding: '0 6px 8px' }}>
-                    {loading ? (
-                        <div style={{ padding: '6px 8px', fontSize: 12, color: 'rgba(232,213,183,0.3)' }}>Loading…</div>
-                    ) : (
-                        folders.map(folder => (
-                            <div
-                                key={folder.id}
-                                onClick={() => setSelectedFolderId(folder.id)}
-                                style={{
-                                    ...sidebarItemBase,
-                                    margin: '0 2px',
-                                    background: selectedFolderId === folder.id ? 'rgba(139,94,60,0.28)' : 'transparent',
-                                    color: selectedFolderId === folder.id ? '#E8D5B7' : 'rgba(232,213,183,0.6)',
-                                }}
-                            >
-                                <span style={{ fontSize: 8, color: 'rgba(232,213,183,0.3)', width: 10 }}>▶</span>
-                                <span style={{ fontSize: 12 }}>📁</span>
-                                {folder.folder_name}
-                            </div>
-                        ))
-                    )}
-                </div>
-
-                <div style={{ padding: 10, borderTop: '1px solid rgba(232,213,183,0.08)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 6px', borderRadius: 7, cursor: 'pointer' }}>
-                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#8B5E3C', color: '#E8D5B7', fontSize: 10.5, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            MA
-                        </div>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(232,213,183,0.6)' }}>Michael A.</span>
-                    </div>
-                </div>
-            </aside>
-
-            {/* ── Main ──────────────────────────── */}
             <div style={{ flex: 1, background: '#FDFAF6', display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
 
                 <div style={{ height: 52, padding: '0 22px', borderBottom: '1px solid #E8DDD0', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
@@ -177,7 +94,6 @@ export default function HomePage() {
                     </div>
                 )}
             </div>
-        </div>
     )
 }
 

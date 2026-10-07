@@ -336,6 +336,7 @@ export type Database = {
           windowend: string
         }[]
       }
+      get_user_permissions: { Args: never; Returns: string[] }
       get_users_with_flag_override: {
         Args: {
           p_flag_id: string

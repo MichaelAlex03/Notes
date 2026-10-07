@@ -9,7 +9,7 @@ interface FeatureFlagsProps {
 }
 
 const page = async ({ params }: FeatureFlagsProps) => {
-    
+
     const client = supabaseClient(await extractJwt())
 
     const { data: permissionCheck, error: permissionError } = await client.rpc('has_permission', {
@@ -17,10 +17,15 @@ const page = async ({ params }: FeatureFlagsProps) => {
     })
 
 
-    if (permissionError || !permissionCheck){
+    if (permissionError || !permissionCheck) {
         redirect('/home/admin')
     }
 
+    const featureFlags = await getFeatureFlags()
+
+    if (featureFlags.length > 0){
+
+    }
     const { page, flagId, searchQuery } = await params
     let parsedPage = 1;
     let validFlagId = ''
@@ -31,15 +36,15 @@ const page = async ({ params }: FeatureFlagsProps) => {
         parsedPage = Number(page)
     }
 
-    const featureFlags = await getFeatureFlags()
     const validFlag = featureFlags.some((f) => f.id === (flagId ?? null))
 
-    if (!validFlag){
+    if (!validFlag) {
         validFlagId = featureFlags[0].id
         parsedPage = 1
     }
 
     const users = await getUsers({ page: parsedPage, flagId: validFlagId, searchQuery: searchQuery ?? '' })
+
 
     return (
         <FeatureFlagHome

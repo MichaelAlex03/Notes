@@ -39,6 +39,7 @@ function getAvatarColor(id: string): string {
 const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, searchQuery }: FeatureFlagHomeProps) => {
   const router = useRouter()
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const isMounted = useRef<boolean>(false);
 
   const [featFlags, setFeatFlags] = useState<FeatureFlags[]>(featureFlags)
   const [featUsers, setFeatUsers] = useState<Users[]>(users)
@@ -48,6 +49,7 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
   const [currentPage, setCurrentPage] = useState<Number>(page)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [flagSearch, setFlagSearch] = useState('')
+  
 
   const currentFlagData = featFlags.find(f => f.id === currentFlag)
   const isGlobalOn = currentFlagData?.global_enabled ?? false
@@ -65,10 +67,16 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
     } else {
       params.set('page', String(page))
     }
-    router.replace(`/home/admin/feature-flags?${params.toString()}`)
+    router.replace(`/home/feature-flags?${params.toString()}`)
   }
 
   useEffect(() => {
+    // Added so it doesnt run on initial render
+    if (!isMounted.current){
+      isMounted.current = true
+      return
+    }
+
     const timeout = setTimeout(() => {
       updateFilter(1, currentFlag, studentLookup)
     }, 1000)
@@ -117,47 +125,9 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
     updateFilter(1, flagId, studentLookup)
   }
 
+  {featFlags.length < 1}
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
-
-      {/* ── Sidebar ──────────────────────────────── */}
-      <aside style={{ width: 200, minWidth: 200, background: '#2D2318', display: 'flex', flexDirection: 'column', height: '100vh', borderRight: '1px solid rgba(232,213,183,0.08)', flexShrink: 0 }}>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#E8D5B7', fontSize: 13.5, fontWeight: 600, letterSpacing: -0.2, padding: '20px 14px 14px' }}>
-          <span>✎</span> notes
-        </div>
-
-        <div style={{ padding: '10px 14px 4px', fontSize: 9, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'rgba(232,213,183,0.35)' }}>Main</div>
-
-        {[{ icon: '◈', label: 'All Notes' }, { icon: '★', label: 'Starred' }].map(item => (
-          <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', margin: '0 6px', borderRadius: 6, fontSize: 12.5, color: 'rgba(232,213,183,0.6)', cursor: 'pointer', userSelect: 'none' }}>
-            <span style={{ fontSize: 12, width: 15, textAlign: 'center' }}>{item.icon}</span>
-            {item.label}
-          </div>
-        ))}
-
-        <div style={{ padding: '10px 14px 4px', marginTop: 8, fontSize: 9, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'rgba(232,213,183,0.35)' }}>Admin</div>
-
-        {[
-          { icon: '⚑', label: 'Feature Flags', active: true },
-          { icon: '👥', label: 'Users', active: false },
-          { icon: '📊', label: 'Analytics', active: false },
-        ].map(item => (
-          <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', margin: '0 6px', borderRadius: 6, fontSize: 12.5, color: item.active ? '#E8D5B7' : 'rgba(232,213,183,0.6)', background: item.active ? 'rgba(139,94,60,0.28)' : 'transparent', cursor: 'pointer', userSelect: 'none' }}>
-            <span style={{ fontSize: 12, width: 15, textAlign: 'center' }}>{item.icon}</span>
-            {item.label}
-          </div>
-        ))}
-
-        <div style={{ marginTop: 'auto', padding: 10, borderTop: '1px solid rgba(232,213,183,0.08)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 6, borderRadius: 7, cursor: 'pointer' }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#8B5E3C', color: '#E8D5B7', fontSize: 10, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>MA</div>
-            <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(232,213,183,0.6)' }}>Michael A.</span>
-          </div>
-        </div>
-      </aside>
-
-      {/* ── Main ─────────────────────────────────── */}
       <div style={{ flex: 1, background: '#FDFAF6', display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
 
         {/* Topbar */}
@@ -289,7 +259,6 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
           </div>
 
         </div>
-      </div>
     </div>
   )
 }
