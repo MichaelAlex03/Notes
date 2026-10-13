@@ -1,6 +1,6 @@
 
 import { redirect } from 'next/navigation'
-import { FeatureFlagHome, getFeatureFlags, getUsers } from '@/modules/feature-flags'
+import { FeatureFlagHome, getFeatureFlags, getUsers, UserResults } from '@/modules/feature-flags'
 import { supabaseClient } from '@/supabase/client';
 import { extractJwt } from '@/modules/shared/extract-jwt';
 
@@ -21,39 +21,48 @@ const page = async ({ params }: FeatureFlagsProps) => {
         redirect('/home/admin')
     }
 
-    const featureFlags = await getFeatureFlags()
+    const featureFlags = await getFeatureFlags();
+    let parsedPage: number | undefined;
+    let validFlagId: string | undefined;
+    let search: string | undefined;
+    let users: UserResults | undefined;
 
-    if (featureFlags.length > 0){
+    if (featureFlags.length > 0) {
 
+        const { page, flagId, searchQuery } = await params
+        search = searchQuery ?? ''
+
+
+        const parsed: number = Number(page)
+        if (!Number.isInteger(parsed) || Number(parsed) < 1) {
+            parsedPage = 1
+        } else {
+            parsedPage = parsed
+        }
+
+        const validFlag = featureFlags.some((f) => f.id === (flagId ?? null))
+
+        if (!validFlag) {
+            validFlagId = featureFlags[0].id
+            parsedPage = 1
+            search = ''
+        } else {
+            validFlagId = flagId;
+        }
+
+
+        users = await getUsers({ page: parsedPage, flagId: validFlagId ?? '', searchQuery: search })
     }
-    const { page, flagId, searchQuery } = await params
-    let parsedPage = 1;
-    let validFlagId = ''
-
-    if (!Number.isInteger(page) || Number(page) < 1) {
-        parsedPage = 1
-    } else {
-        parsedPage = Number(page)
-    }
-
-    const validFlag = featureFlags.some((f) => f.id === (flagId ?? null))
-
-    if (!validFlag) {
-        validFlagId = featureFlags[0].id
-        parsedPage = 1
-    }
-
-    const users = await getUsers({ page: parsedPage, flagId: validFlagId, searchQuery: searchQuery ?? '' })
 
 
     return (
         <FeatureFlagHome
             featureFlags={featureFlags}
-            users={users.users}
-            moreData={users.moreData}
+            users={users?.users}
+            moreData={users?.moreData}
             page={parsedPage}
             currentFlagId={validFlagId}
-            searchQuery={searchQuery}
+            searchQuery={search}
         />
     )
 }

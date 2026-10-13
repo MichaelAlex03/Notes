@@ -4,6 +4,8 @@ import { customSACaller } from "@/modules/auth"
 import { supabaseClient } from "@/supabase/client"
 import { type Error } from "@/app/types/errors"
 import { extractJwt } from "@/modules/shared/extract-jwt"
+import { AddFeatureFlagResults, AddFeatureFlagSchema } from "../schemas/schemas"
+import { isRedirectError } from "next/dist/client/components/redirect-error"
 
 
 export const enableGlobalAccess = async (flagId: string, enabled: boolean): Promise<Error> => {
@@ -129,9 +131,76 @@ export const enableUserAccess = async (flagId: string, userId: string, enabled: 
 
     }
 
-
     return {
         success: true,
         error: ''
     }
+}
+
+
+export const addFeatureFlag = async (flagName: string): Promise<AddFeatureFlagResults> => {
+
+    await customSACaller()
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000)
+    const client = supabaseClient(await extractJwt())
+    const validName = AddFeatureFlagSchema.safeParse(flagName)
+
+
+    try {
+
+        if (!validName.success) {
+            return {
+                success: false,
+                flagId: '',
+                error: 'Invalid name type'
+            }
+        }
+
+        const { data: flagId, error: insertFlagError } = await client
+            .from('feature_flags')
+            .upsert(
+                { name: validName.data.flagName, global_enabled: false },
+                { onConflict: 'name', ignoreDuplicates: true }
+            )
+            .abortSignal(controller.signal)
+            .select()
+            .single()
+
+
+        if (insertFlagError) {
+            return {
+                success: false,
+                flagId: '',
+                error: 'Unable to insert feature flag'
+            }
+        }
+
+        if (!flagId) {
+            return {
+                success: false,
+                flagId: '',
+                error: 'Unable to select id for new feature flag'
+            }
+        }
+
+        return {
+            success: true,
+            flagId: flagId.id,
+            error: ''
+        }
+    } catch (e) {
+        // redirect() throws a Next.js sentinel value — must re-throw or the redirect is swallowed.
+        // AbortController.abort() throws a DOMException that Supabase doesn't catch internally,
+        // so a timeout firing lands here instead of in the { data, error } result object.
+        if (isRedirectError(e)) throw e
+        return {
+            success: false,
+            flagId: '',
+            error: 'Request timed out or failed unexpectedly'
+        }
+    } finally {
+        clearTimeout(timeout)
+    }
+
 }

@@ -1,11 +1,7 @@
 import { supabaseClient } from "@/supabase/client"
 import { extractJwt } from "@/modules/shared/extract-jwt";
+import { FeatureFlagResults, FetchUserProps, UserResults } from "../schemas/schemas";
 
-interface FeatureFlagResults {
-    id: string;
-    name: string;
-    global_enabled: boolean;
-}
 
 export const fetchFeatureFlags = async (): Promise<FeatureFlagResults[]> => {
     const client = supabaseClient(await extractJwt())
@@ -21,23 +17,7 @@ export const fetchFeatureFlags = async (): Promise<FeatureFlagResults[]> => {
     return featureFlags
 }
 
-type User = {
-    id: string;
-    first_name: string;
-    last_name: string;
-    enabled: boolean
-}
 
-interface UserResults {
-    users: User[];
-    moreData: boolean;
-}
-
-interface FetchUserProps {
-    page: number;
-    flagId: string;
-    searchQuery: string
-}
 
 export const fetchUsers = async ({ page, flagId, searchQuery }: FetchUserProps): Promise<UserResults> => {
     const client = supabaseClient(await extractJwt())

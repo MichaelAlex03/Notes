@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from "react";
-import { enableGlobalAccess, enableUserAccess } from "../server/feature-flag-server-actions";
+import { addFeatureFlag, enableGlobalAccess, enableUserAccess } from "../server/feature-flag-server-actions";
 import { useRouter } from "next/navigation";
+import { AddFeatureFlagResults } from "../schemas/schemas";
+import { Error } from "@/app/types/errors";
 
 interface FeatureFlags {
   id: string,
@@ -19,14 +21,14 @@ interface Users {
 
 interface FeatureFlagHomeProps {
   featureFlags: FeatureFlags[];
-  users: Users[];
-  moreData: boolean;
-  page: Number;
-  currentFlagId: string;
+  users: Users[] | undefined;
+  moreData: boolean | undefined;
+  page: Number | undefined;
+  currentFlagId: string | undefined;
   searchQuery: string | undefined;
 }
 
-type Error = 'Unable to update global access' | 'Unable to update users flag'
+type Errors = 'Unable to update global access' | 'Unable to update users flag' | 'Unable to add feature flag'
 
 const AVATAR_COLORS = ['#8B5E3C', '#4A7C6F', '#6B5E8B', '#8B4A4A', '#4A6B8B', '#6B8B4A', '#8B6B4A', '#4A8B6B']
 
@@ -42,37 +44,40 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
   const isMounted = useRef<boolean>(false);
 
   const [featFlags, setFeatFlags] = useState<FeatureFlags[]>(featureFlags)
-  const [featUsers, setFeatUsers] = useState<Users[]>(users)
+  const [featUsers, setFeatUsers] = useState<Users[]>(users ?? [])
   const [studentLookup, setStudentLookup] = useState<string>(searchQuery ?? '')
-  const [error, setError] = useState<Error>('' as Error)
-  const [currentFlag, setCurrentFlag] = useState<string>(currentFlagId)
-  const [currentPage, setCurrentPage] = useState<Number>(page)
+  const [error, setError] = useState<Errors>('' as Errors)
+  const [currentFlag, setCurrentFlag] = useState<string>(currentFlagId ?? '')
+  const [currentPage, setCurrentPage] = useState<Number>(page ?? 1)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [flagSearch, setFlagSearch] = useState('')
-  
+
 
   const currentFlagData = featFlags.find(f => f.id === currentFlag)
   const isGlobalOn = currentFlagData?.global_enabled ?? false
-  const filteredFlags = featFlags.filter(f => f.name.toLowerCase().includes(flagSearch.toLowerCase()))
+  const filteredFlags = flagSearch.trim().length > 0 ? featFlags.filter(f => f.name.toLowerCase().includes(flagSearch.toLowerCase())) : featFlags
 
   const updateFilter = (page: number, flagId: string, search: string) => {
     const params = new URLSearchParams()
-    if (flagId !== currentFlag || search !== studentLookup) {
+    if (flagId !== (currentFlagId ?? '') || search !== (searchQuery ?? '')) {
       params.set('page', String(1))
-      if (flagId !== currentFlag) {
+      if (flagId !== (currentFlagId ?? '')) {
         params.set('flagId', flagId)
       } else {
         params.set('searchQuery', search)
+        params.set('flagId', flagId)
       }
     } else {
       params.set('page', String(page))
+      params.set('searchQuery', search)
+      params.set('flagId', flagId)
     }
     router.replace(`/home/feature-flags?${params.toString()}`)
   }
 
   useEffect(() => {
     // Added so it doesnt run on initial render
-    if (!isMounted.current){
+    if (!isMounted.current) {
       isMounted.current = true
       return
     }
@@ -99,7 +104,7 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
     if (!result.success) {
       setError('Unable to update global access')
       return;
-    } 
+    }
     setFeatFlags(prev => prev.map(flag =>
       flag.id === flagId ? { ...flag, global_enabled: enabled } : flag
     ))
@@ -122,143 +127,186 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
     setCurrentFlag(flagId)
     setDropdownOpen(false)
     setFlagSearch('')
-    updateFilter(1, flagId, studentLookup)
+    updateFilter(1, flagId, '')
   }
 
-  {featFlags.length < 1}
+  const handleAddFlag = async (newFlagName: string) => {
+
+    let result: AddFeatureFlagResults;
+    Promise.race([
+      result = await addFeatureFlag(newFlagName),
+      setTimeout(() => Promise.reject('Could not add feature flag'), 5000)
+    ])
+
+    if (!result.success) {
+      setError('Unable to add feature flag')
+      return;
+    }
+
+    const params = new URLSearchParams()
+    params.set("page", "1")
+    params.set("flagId", result.flagId)
+    params.set("searchQuery", '')
+
+    router.replace(`/home/feature-flags?${params.toString()}`)
+
+  }
 
   return (
-      <div style={{ flex: 1, background: '#FDFAF6', display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+    <div style={{ flex: 1, background: '#FDFAF6', display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
 
-        {/* Topbar */}
-        <div style={{ height: 56, padding: '0 24px', borderBottom: '1px solid #E8DDD0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, background: '#fff' }}>
+      {/* Topbar */}
+      <div style={{ height: 56, padding: '0 24px', borderBottom: '1px solid #E8DDD0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, background: '#fff' }}>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#1C1510' }}>Feature Flags</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 5, fontSize: 10.5, fontWeight: 600, background: 'rgba(139,94,60,0.1)', color: '#8B5E3C' }}>⚑ Admin</span>
-          </div>
-
-          {/* Flag picker dropdown */}
-          <div ref={dropdownRef} style={{ position: 'relative' }}>
-            <div
-              onClick={() => setDropdownOpen(o => !o)}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#fff', border: `1.5px solid ${dropdownOpen ? '#8B5E3C' : '#E8DDD0'}`, borderRadius: 8, cursor: 'pointer', userSelect: 'none', minWidth: 220, boxShadow: dropdownOpen ? '0 0 0 3px rgba(139,94,60,0.12)' : 'none', transition: 'border-color 0.15s, box-shadow 0.15s' }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#A89070' }}>Active flag</span>
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: '#1C1510', fontFamily: "'SF Mono', 'Fira Code', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {currentFlagData?.name ?? '—'}
-                </span>
-              </div>
-              <StatusBadge on={isGlobalOn} />
-              <span style={{ fontSize: 9, color: '#A89070', transition: 'transform 0.2s', transform: dropdownOpen ? 'rotate(180deg)' : 'none', flexShrink: 0 }}>▼</span>
-            </div>
-
-            {dropdownOpen && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: '#fff', border: '1px solid #E8DDD0', borderRadius: 10, boxShadow: '0 8px 32px rgba(45,35,24,0.12), 0 2px 8px rgba(45,35,24,0.06)', minWidth: 260, zIndex: 100, overflow: 'hidden' }}>
-                <input
-                  autoFocus
-                  value={flagSearch}
-                  onChange={e => setFlagSearch(e.target.value)}
-                  placeholder="⌕  Search flags…"
-                  style={{ width: '100%', border: 'none', borderBottom: '1px solid #E8DDD0', padding: '10px 12px', fontFamily: 'inherit', fontSize: 12, color: '#6B5744', outline: 'none', background: '#F2E8D6' }}
-                />
-                {filteredFlags.map(flag => (
-                  <FlagDropdownItem
-                    key={flag.id}
-                    flag={flag}
-                    selected={flag.id === currentFlag}
-                    onSelect={() => selectFlag(flag.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#1C1510' }}>Feature Flags</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 5, fontSize: 10.5, fontWeight: 600, background: 'rgba(139,94,60,0.1)', color: '#8B5E3C' }}>⚑ Admin</span>
         </div>
 
-        {/* Page body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Flag picker dropdown — only when >1 flags */}
+          {featFlags.length > 1 && (
+            <div ref={dropdownRef} style={{ position: 'relative' }}>
+              <div
+                onClick={() => setDropdownOpen(o => !o)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#fff', border: `1.5px solid ${dropdownOpen ? '#8B5E3C' : '#E8DDD0'}`, borderRadius: 8, cursor: 'pointer', userSelect: 'none', minWidth: 220, boxShadow: dropdownOpen ? '0 0 0 3px rgba(139,94,60,0.12)' : 'none', transition: 'border-color 0.15s, box-shadow 0.15s' }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#A89070' }}>Active flag</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#1C1510', fontFamily: "'SF Mono', 'Fira Code', monospace", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {currentFlagData?.name ?? '—'}
+                  </span>
+                </div>
+                <StatusBadge on={isGlobalOn} />
+                <span style={{ fontSize: 9, color: '#A89070', transition: 'transform 0.2s', transform: dropdownOpen ? 'rotate(180deg)' : 'none', flexShrink: 0 }}>▼</span>
+              </div>
 
-          {/* Global access card */}
-          <div style={{ background: '#fff', border: `2px solid ${isGlobalOn ? 'rgba(45,106,79,0.35)' : '#E8DDD0'}`, borderRadius: 12, overflow: 'hidden', flexShrink: 0, transition: 'border-color 0.2s' }}>
-            <div style={{ padding: '20px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 42, height: 42, borderRadius: 10, background: isGlobalOn ? 'rgba(45,106,79,0.1)' : '#F2E8D6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, transition: 'background 0.2s' }}>🌐</div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1510', marginBottom: 3 }}>Global Access</div>
-                  <div style={{ fontSize: 12.5, color: '#A89070', lineHeight: 1.5, maxWidth: 480 }}>
-                    When enabled, <strong style={{ color: '#6B5744' }}>{currentFlagData?.name}</strong> is turned on for <strong style={{ color: '#6B5744' }}>all users</strong> automatically. Individual user overrides are disabled while global access is on.
+              {dropdownOpen && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: '#fff', border: '1px solid #E8DDD0', borderRadius: 10, boxShadow: '0 8px 32px rgba(45,35,24,0.12), 0 2px 8px rgba(45,35,24,0.06)', minWidth: 260, zIndex: 100, overflow: 'hidden' }}>
+                  <input
+                    autoFocus
+                    value={flagSearch}
+                    onChange={e => setFlagSearch(e.target.value)}
+                    placeholder="⌕  Search flags…"
+                    style={{ width: '100%', border: 'none', borderBottom: '1px solid #E8DDD0', padding: '10px 12px', fontFamily: 'inherit', fontSize: 12, color: '#6B5744', outline: 'none', background: '#F2E8D6' }}
+                  />
+                  {filteredFlags.map(flag => (
+                    <FlagDropdownItem
+                      key={flag.id}
+                      flag={flag}
+                      selected={flag.id === currentFlag}
+                      onSelect={() => selectFlag(flag.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <button
+            onClick={handleAddFlag}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#8B5E3C', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
+          >
+            <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>+</span> Add Feature Flag
+          </button>
+        </div>
+      </div>
+
+      {/* Page body */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        {featFlags.length === 0 ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#A89070' }}>
+            <span style={{ fontSize: 36 }}>⚑</span>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1510' }}>No feature flags yet</div>
+            <div style={{ fontSize: 13 }}>Currently no feature flags. First add one.</div>
+          </div>
+        ) : (
+          <>
+            {/* Global access card */}
+            <div style={{ background: '#fff', border: `2px solid ${isGlobalOn ? 'rgba(45,106,79,0.35)' : '#E8DDD0'}`, borderRadius: 12, overflow: 'hidden', flexShrink: 0, transition: 'border-color 0.2s' }}>
+              <div style={{ padding: '20px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 10, background: isGlobalOn ? 'rgba(45,106,79,0.1)' : '#F2E8D6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, transition: 'background 0.2s' }}>🌐</div>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1510', marginBottom: 3 }}>Global Access</div>
+                    <div style={{ fontSize: 12.5, color: '#A89070', lineHeight: 1.5, maxWidth: 480 }}>
+                      When enabled, <strong style={{ color: '#6B5744' }}>{currentFlagData?.name}</strong> is turned on for <strong style={{ color: '#6B5744' }}>all users</strong> automatically. Individual user overrides are disabled while global access is on.
+                    </div>
                   </div>
                 </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+                  <StatusBadge on={isGlobalOn} />
+                  <Toggle
+                    checked={isGlobalOn}
+                    size="lg"
+                    onChange={checked => currentFlagData && toggleFlagGlobal(currentFlagData.id, checked)}
+                  />
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
-                <StatusBadge on={isGlobalOn} />
-                <Toggle
-                  checked={isGlobalOn}
-                  size="lg"
-                  onChange={checked => currentFlagData && toggleFlagGlobal(currentFlagData.id, checked)}
-                />
-              </div>
-            </div>
-            {isGlobalOn && (
-              <div style={{ background: 'rgba(45,106,79,0.06)', borderTop: '1px solid rgba(45,106,79,0.15)', padding: '10px 22px', fontSize: 12, color: '#2D6A4F', display: 'flex', alignItems: 'center', gap: 7 }}>
-                🔒 Individual toggles are disabled — all users inherit global access.
-              </div>
-            )}
-          </div>
-
-          {/* User list card */}
-          <div style={{ background: '#fff', border: '1px solid #E8DDD0', borderRadius: 12, overflow: 'hidden', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid #E8DDD0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#1C1510' }}>Individual Access</span>
-                <span style={{ fontSize: 12, color: '#A89070' }}>{featUsers.length} users</span>
-              </div>
-              <input
-                value={studentLookup}
-                onChange={e => setStudentLookup(e.target.value)}
-                placeholder="⌕  Search users…"
-                disabled={isGlobalOn}
-                style={{ background: '#F2E8D6', border: '1px solid #E8DDD0', borderRadius: 7, padding: '6px 10px', fontFamily: 'inherit', fontSize: 12, color: '#6B5744', outline: 'none', width: 180, opacity: isGlobalOn ? 0.45 : 1, cursor: isGlobalOn ? 'not-allowed' : 'text', transition: 'opacity 0.2s' }}
-              />
+              {isGlobalOn && (
+                <div style={{ background: 'rgba(45,106,79,0.06)', borderTop: '1px solid rgba(45,106,79,0.15)', padding: '10px 22px', fontSize: 12, color: '#2D6A4F', display: 'flex', alignItems: 'center', gap: 7 }}>
+                  🔒 Individual toggles are disabled — all users inherit global access.
+                </div>
+              )}
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-              {featUsers.map((user, i) => {
-                const initials = `${user.first_name[0] ?? ''}${user.last_name[0] ?? ''}`.toUpperCase()
-                const color = getAvatarColor(user.id)
-                return (
-                  <div
-                    key={user.id}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: i < featUsers.length - 1 ? '1px solid rgba(232,221,208,0.5)' : 'none', opacity: isGlobalOn ? 0.38 : 1, pointerEvents: isGlobalOn ? 'none' : 'auto', transition: 'opacity 0.2s, background 0.1s' }}
-                    onMouseEnter={e => { if (!isGlobalOn) (e.currentTarget as HTMLDivElement).style.background = 'rgba(242,232,214,0.35)' }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: '#fff', flexShrink: 0 }}>{initials}</div>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: '#1C1510' }}>{user.first_name} {user.last_name}</div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <StatusBadge on={user.enabled} />
-                      <Toggle
-                        checked={user.enabled}
-                        size="sm"
-                        onChange={checked => toggleFlagUser(user.id, currentFlag, checked)}
-                      />
-                    </div>
+            {/* User list card — only when >1 flags */}
+            {featFlags.length > 1 && (
+              <div style={{ background: '#fff', border: '1px solid #E8DDD0', borderRadius: 12, overflow: 'hidden', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '14px 20px', borderBottom: '1px solid #E8DDD0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#1C1510' }}>Individual Access</span>
+                    <span style={{ fontSize: 12, color: '#A89070' }}>{featUsers.length} users</span>
                   </div>
-                )
-              })}
-            </div>
+                  <input
+                    value={studentLookup}
+                    onChange={e => setStudentLookup(e.target.value)}
+                    placeholder="⌕  Search users…"
+                    disabled={isGlobalOn}
+                    style={{ background: '#F2E8D6', border: '1px solid #E8DDD0', borderRadius: 7, padding: '6px 10px', fontFamily: 'inherit', fontSize: 12, color: '#6B5744', outline: 'none', width: 180, opacity: isGlobalOn ? 0.45 : 1, cursor: isGlobalOn ? 'not-allowed' : 'text', transition: 'opacity 0.2s' }}
+                  />
+                </div>
 
-            {isGlobalOn && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 20px', background: 'rgba(242,232,214,0.5)', borderTop: '1px solid #E8DDD0', fontSize: 12, color: '#A89070', flexShrink: 0 }}>
-                🔒 Enable individual access by turning off global above
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  {featUsers.map((user, i) => {
+                    const initials = `${user.first_name[0] ?? ''}${user.last_name[0] ?? ''}`.toUpperCase()
+                    const color = getAvatarColor(user.id)
+                    return (
+                      <div
+                        key={user.id}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: i < featUsers.length - 1 ? '1px solid rgba(232,221,208,0.5)' : 'none', opacity: isGlobalOn ? 0.38 : 1, pointerEvents: isGlobalOn ? 'none' : 'auto', transition: 'opacity 0.2s, background 0.1s' }}
+                        onMouseEnter={e => { if (!isGlobalOn) (e.currentTarget as HTMLDivElement).style.background = 'rgba(242,232,214,0.35)' }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ width: 34, height: 34, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: '#fff', flexShrink: 0 }}>{initials}</div>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: '#1C1510' }}>{user.first_name} {user.last_name}</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <StatusBadge on={user.enabled} />
+                          <Toggle
+                            checked={user.enabled}
+                            size="sm"
+                            onChange={checked => toggleFlagUser(user.id, currentFlag, checked)}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {isGlobalOn && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 20px', background: 'rgba(242,232,214,0.5)', borderTop: '1px solid #E8DDD0', fontSize: 12, color: '#A89070', flexShrink: 0 }}>
+                    🔒 Enable individual access by turning off global above
+                  </div>
+                )}
               </div>
             )}
-          </div>
+          </>
+        )}
 
-        </div>
+      </div>
     </div>
   )
 }
