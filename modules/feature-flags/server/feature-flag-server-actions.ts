@@ -144,7 +144,7 @@ export const addFeatureFlag = async (flagName: string): Promise<AddFeatureFlagRe
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000)
     const client = supabaseClient(await extractJwt())
-    const validName = AddFeatureFlagSchema.safeParse(flagName)
+    const validName = AddFeatureFlagSchema.safeParse({ flagName })
 
 
     try {

@@ -28,7 +28,11 @@ interface FeatureFlagHomeProps {
   searchQuery: string | undefined;
 }
 
-type Errors = 'Unable to update global access' | 'Unable to update users flag' | 'Unable to add feature flag'
+type Errors =
+  'Unable to update global access'
+  | 'Unable to update users flag'
+  | 'Unable to add feature flag'
+  | 'Flag already exists'
 
 const AVATAR_COLORS = ['#8B5E3C', '#4A7C6F', '#6B5E8B', '#8B4A4A', '#4A6B8B', '#6B8B4A', '#8B6B4A', '#4A8B6B']
 
@@ -51,7 +55,9 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
   const [currentPage, setCurrentPage] = useState<Number>(page ?? 1)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [flagSearch, setFlagSearch] = useState('')
-
+  const [modalOpen, setModalOpen] = useState(false)
+  const [newFlagName, setNewFlagName] = useState('')
+  const [isAdding, setIsAdding] = useState(false)
 
   const currentFlagData = featFlags.find(f => f.id === currentFlag)
   const isGlobalOn = currentFlagData?.global_enabled ?? false
@@ -74,6 +80,16 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
     }
     router.replace(`/home/feature-flags?${params.toString()}`)
   }
+
+  // When query params change the server re-fetches and passes new props down; without this
+  // the local state would remain stale and not reflect the updated data.
+  useEffect(() => {
+    setFeatFlags(featureFlags)
+    setFeatUsers(users ?? [])
+    setCurrentPage(page ?? 1)
+    setCurrentFlag(currentFlagId ?? '')
+    setStudentLookup(searchQuery ?? '')
+  }, [featureFlags, users, moreData, page, currentFlagId, searchQuery])
 
   useEffect(() => {
     // Added so it doesnt run on initial render
@@ -130,26 +146,39 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
     updateFilter(1, flagId, '')
   }
 
-  const handleAddFlag = async (newFlagName: string) => {
+  const handleAddFlag = async () => {
+    try {
+      const exists = featFlags.some((f) => f.name.toLowerCase().trim() === newFlagName.toLowerCase().trim())
+      if (exists) {
+        setError('Flag already exists')
+        return
+      }
 
-    let result: AddFeatureFlagResults;
-    Promise.race([
-      result = await addFeatureFlag(newFlagName),
-      setTimeout(() => Promise.reject('Could not add feature flag'), 5000)
-    ])
+      setIsAdding(true)
+      const result = await Promise.race([
+        addFeatureFlag(newFlagName),
+        new Promise<never>((_, reject) => setTimeout(() => reject('Create new feature flag call timed out'), 5000))
+      ])
 
-    if (!result.success) {
+      if (!result.success) {
+        setError('Unable to add feature flag')
+        setIsAdding(false)
+        return;
+      }
+
+      setModalOpen(false)
+      setNewFlagName('')
+
+      const params = new URLSearchParams()
+      params.set("page", "1")
+      params.set("flagId", result.flagId)
+      params.set("searchQuery", '')
+
+      router.replace(`/home/feature-flags?${params.toString()}`)
+    } catch {
       setError('Unable to add feature flag')
-      return;
+      setIsAdding(false)
     }
-
-    const params = new URLSearchParams()
-    params.set("page", "1")
-    params.set("flagId", result.flagId)
-    params.set("searchQuery", '')
-
-    router.replace(`/home/feature-flags?${params.toString()}`)
-
   }
 
   return (
@@ -204,7 +233,7 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
           )}
 
           <button
-            onClick={handleAddFlag}
+            onClick={() => setModalOpen(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#8B5E3C', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
           >
             <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>+</span> Add Feature Flag
@@ -252,7 +281,7 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
             </div>
 
             {/* User list card — only when >1 flags */}
-            {featFlags.length > 1 && (
+            {featFlags.length > 0 && (
               <div style={{ background: '#fff', border: '1px solid #E8DDD0', borderRadius: 12, overflow: 'hidden', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: '14px 20px', borderBottom: '1px solid #E8DDD0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -307,6 +336,55 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
         )}
 
       </div>
+
+      {/* Add Feature Flag Modal */}
+      {modalOpen && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(28,21,16,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}
+        >
+          <div
+            style={{ background: '#fff', borderRadius: 14, padding: 28, width: 400, boxShadow: '0 16px 48px rgba(45,35,24,0.18)', display: 'flex', flexDirection: 'column', gap: 20 }}
+          >
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#1C1510', marginBottom: 4 }}>New Feature Flag</div>
+              <div style={{ fontSize: 12.5, color: '#A89070' }}>Enter a unique name for this flag.</div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 11.5, fontWeight: 600, color: '#6B5744', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Flag name</label>
+              <input
+                autoFocus
+                value={newFlagName}
+                onChange={e => setNewFlagName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && newFlagName.trim()) handleAddFlag() }}
+                placeholder="e.g. new_dashboard"
+                style={{ background: '#F2E8D6', border: '1.5px solid #E8DDD0', borderRadius: 8, padding: '9px 12px', fontFamily: "'SF Mono', 'Fira Code', monospace", fontSize: 13, color: '#1C1510', outline: 'none', transition: 'border-color 0.15s' }}
+                onFocus={e => (e.target.style.borderColor = '#8B5E3C')}
+                onBlur={e => (e.target.style.borderColor = '#E8DDD0')}
+              />
+              {error === 'Flag already exists' && (
+                <span style={{ fontSize: 12, color: '#C0392B' }}>A flag with this name already exists.</span>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                onClick={() => { setModalOpen(false); setNewFlagName(''); setError('' as Errors) }}
+                style={{ padding: '8px 16px', background: 'transparent', border: '1.5px solid #E8DDD0', borderRadius: 8, fontSize: 12.5, fontWeight: 600, color: '#6B5744', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddFlag}
+                disabled={!newFlagName.trim() || isAdding}
+                style={{ padding: '8px 16px', background: !newFlagName.trim() || isAdding ? 'rgba(139,94,60,0.4)' : '#8B5E3C', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 600, color: '#fff', cursor: !newFlagName.trim() || isAdding ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'background 0.15s' }}
+              >
+                {isAdding ? 'Adding…' : 'Add Flag'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
