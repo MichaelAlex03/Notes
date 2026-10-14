@@ -5,10 +5,10 @@ import { supabaseClient } from '@/supabase/client';
 import { extractJwt } from '@/modules/shared/extract-jwt';
 
 interface FeatureFlagsProps {
-    params: Promise<{ page: string | undefined, flagId: string | undefined, searchQuery: string | undefined }>;
+    searchParams: Promise<{ page: string | undefined, flagId: string | undefined, searchQuery: string | undefined }>;
 }
 
-const page = async ({ params }: FeatureFlagsProps) => {
+const page = async ({ searchParams }: FeatureFlagsProps) => {
 
     const client = supabaseClient(await extractJwt())
 
@@ -29,7 +29,7 @@ const page = async ({ params }: FeatureFlagsProps) => {
 
     if (featureFlags.length > 0) {
 
-        const { page, flagId, searchQuery } = await params
+        const { page, flagId, searchQuery } = await searchParams
         search = searchQuery ?? ''
 
 

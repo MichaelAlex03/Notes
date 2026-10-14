@@ -57,7 +57,10 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
   const [flagSearch, setFlagSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [newFlagName, setNewFlagName] = useState('')
-  const [isAdding, setIsAdding] = useState(false)
+  const [isAdding, setIsAdding] = useState(false);
+  const [isSelecting, setIsSelecting] = useState<boolean>(false)
+  const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false)
+  const [isToggling, setIsToggling] = useState<boolean>(false)
 
   const currentFlagData = featFlags.find(f => f.id === currentFlag)
   const isGlobalOn = currentFlagData?.global_enabled ?? false
@@ -83,13 +86,20 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
 
   // When query params change the server re-fetches and passes new props down; without this
   // the local state would remain stale and not reflect the updated data.
+  // All props arrive atomically in the same render (Next.js streams at Suspense boundaries,
+  // not at the prop level), so this effect fires once with all updated values together.
   useEffect(() => {
+
     setFeatFlags(featureFlags)
     setFeatUsers(users ?? [])
     setCurrentPage(page ?? 1)
     setCurrentFlag(currentFlagId ?? '')
     setStudentLookup(searchQuery ?? '')
-  }, [featureFlags, users, moreData, page, currentFlagId, searchQuery])
+    setIsSelecting(false)
+    setIsAdding(false)
+    setIsLoadingUsers(false)
+    
+  }, [featureFlags, users, page, currentFlagId, searchQuery])
 
   useEffect(() => {
     // Added so it doesnt run on initial render
@@ -98,6 +108,7 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
       return
     }
 
+    setIsLoadingUsers(true)
     const timeout = setTimeout(() => {
       updateFilter(1, currentFlag, studentLookup)
     }, 1000)
@@ -116,33 +127,39 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
   }, [])
 
   const toggleFlagGlobal = async (flagId: string, enabled: boolean) => {
+
+    setIsToggling(true)
     const result = await enableGlobalAccess(flagId, enabled)
     if (!result.success) {
       setError('Unable to update global access')
+      setIsToggling(false)
       return;
     }
     setFeatFlags(prev => prev.map(flag =>
       flag.id === flagId ? { ...flag, global_enabled: enabled } : flag
     ))
+    setIsToggling(false)
   }
 
   const toggleFlagUser = async (userId: string, flagId: string, enabled: boolean) => {
+    setIsToggling(true)
     const result = await enableUserAccess(flagId, userId, enabled)
-
     if (!result.success) {
       setError('Unable to update users flag')
+      setIsToggling(false)
       return
     }
 
+    setIsToggling(false)
     setFeatUsers(prev => prev.map(user =>
       user.id === userId ? { ...user, enabled } : user
     ))
   }
 
   const selectFlag = (flagId: string) => {
-    setCurrentFlag(flagId)
     setDropdownOpen(false)
     setFlagSearch('')
+    setIsSelecting(true)
     updateFilter(1, flagId, '')
   }
 
@@ -168,13 +185,9 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
 
       setModalOpen(false)
       setNewFlagName('')
+      setIsAdding(false)
 
-      const params = new URLSearchParams()
-      params.set("page", "1")
-      params.set("flagId", result.flagId)
-      params.set("searchQuery", '')
-
-      router.replace(`/home/feature-flags?${params.toString()}`)
+      updateFilter(1, result.flagId, '')
     } catch {
       setError('Unable to add feature flag')
       setIsAdding(false)
@@ -298,31 +311,35 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
                 </div>
 
                 <div style={{ flex: 1, overflowY: 'auto' }}>
-                  {featUsers.map((user, i) => {
-                    const initials = `${user.first_name[0] ?? ''}${user.last_name[0] ?? ''}`.toUpperCase()
-                    const color = getAvatarColor(user.id)
-                    return (
-                      <div
-                        key={user.id}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: i < featUsers.length - 1 ? '1px solid rgba(232,221,208,0.5)' : 'none', opacity: isGlobalOn ? 0.38 : 1, pointerEvents: isGlobalOn ? 'none' : 'auto', transition: 'opacity 0.2s, background 0.1s' }}
-                        onMouseEnter={e => { if (!isGlobalOn) (e.currentTarget as HTMLDivElement).style.background = 'rgba(242,232,214,0.35)' }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div style={{ width: 34, height: 34, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: '#fff', flexShrink: 0 }}>{initials}</div>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: '#1C1510' }}>{user.first_name} {user.last_name}</div>
+                  {isLoadingUsers ? (
+                    <UserListSkeleton />
+                  ) : (
+                    featUsers.map((user, i) => {
+                      const initials = `${user.first_name[0] ?? ''}${user.last_name[0] ?? ''}`.toUpperCase()
+                      const color = getAvatarColor(user.id)
+                      return (
+                        <div
+                          key={user.id}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: i < featUsers.length - 1 ? '1px solid rgba(232,221,208,0.5)' : 'none', opacity: isGlobalOn ? 0.38 : 1, pointerEvents: isGlobalOn ? 'none' : 'auto', transition: 'opacity 0.2s, background 0.1s' }}
+                          onMouseEnter={e => { if (!isGlobalOn) (e.currentTarget as HTMLDivElement).style.background = 'rgba(242,232,214,0.35)' }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ width: 34, height: 34, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: '#fff', flexShrink: 0 }}>{initials}</div>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: '#1C1510' }}>{user.first_name} {user.last_name}</div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <StatusBadge on={user.enabled} />
+                            <Toggle
+                              checked={user.enabled}
+                              size="sm"
+                              onChange={checked => toggleFlagUser(user.id, currentFlag, checked)}
+                            />
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <StatusBadge on={user.enabled} />
-                          <Toggle
-                            checked={user.enabled}
-                            size="sm"
-                            onChange={checked => toggleFlagUser(user.id, currentFlag, checked)}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })
+                  )}
                 </div>
 
                 {isGlobalOn && (
@@ -386,6 +403,26 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
         </div>
       )}
     </div>
+  )
+}
+
+function UserListSkeleton() {
+  const rows = Array.from({ length: 6 })
+  return (
+    <>
+      {rows.map((_, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: i < rows.length - 1 ? '1px solid rgba(232,221,208,0.5)' : 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#F2E8D6', flexShrink: 0 }} />
+            <div style={{ width: 120 + (i % 3) * 24, height: 13, borderRadius: 6, background: '#F2E8D6' }} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 62, height: 22, borderRadius: 20, background: '#F2E8D6' }} />
+            <div style={{ width: 36, height: 20, borderRadius: 20, background: '#F2E8D6' }} />
+          </div>
+        </div>
+      ))}
+    </>
   )
 }
 
