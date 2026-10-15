@@ -128,6 +128,8 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
   /*
    * enableGlobalAccess is idempotent — if the timeout fires before the response
    * arrives but the DB write went through, retrying with the same value is safe.
+   * Note: withTimeout only bounds the client-side wait. A network stall between
+   * the server and Supabase can still hang the action server-side indefinitely.
    */
   const toggleFlagGlobal = async (flagId: string, enabled: boolean) => {
 
@@ -152,6 +154,8 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
   /*
    * enableUserAccess is idempotent — if the timeout fires before the response
    * arrives but the DB write went through, retrying with the same value is safe.
+   * Note: withTimeout only bounds the client-side wait. A network stall between
+   * the server and Supabase can still hang the action server-side indefinitely.
    */
   const toggleFlagUser = async (userId: string, flagId: string, enabled: boolean) => {
     setTogglingUserId(userId)
@@ -180,6 +184,7 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
     updateFilter(1, flagId, '')
   }
 
+ 
   const handleAddFlag = async () => {
     try {
       const exists = featFlags.some((f) => f.name.toLowerCase().trim() === newFlagName.toLowerCase().trim())

@@ -137,70 +137,58 @@ export const enableUserAccess = async (flagId: string, userId: string, enabled: 
     }
 }
 
-
+/*
+  * No AbortController here — addFeatureFlag is a cheap INSERT and idempotent
+  * by name, so if the timeout fires before the response arrives but the DB
+  * write went through, retrying is safe and the wasted server work is trivial.
+  * withTimeout is sufficient to bound the client-side hang.
+  */
 export const addFeatureFlag = async (flagName: string): Promise<AddFeatureFlagResults> => {
 
     await customSACaller()
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000)
     const client = supabaseClient(await extractJwt())
     const validName = AddFeatureFlagSchema.safeParse({ flagName })
 
 
-    try {
 
-        if (!validName.success) {
-            return {
-                success: false,
-                flagId: '',
-                error: 'Invalid name type'
-            }
-        }
-
-        const { data: flagId, error: insertFlagError } = await client
-            .from('feature_flags')
-            .upsert(
-                { name: validName.data.flagName, global_enabled: false },
-                { onConflict: 'name', ignoreDuplicates: true }
-            )
-            .abortSignal(controller.signal)
-            .select()
-            .single()
-
-
-        if (insertFlagError) {
-            return {
-                success: false,
-                flagId: '',
-                error: 'Unable to insert feature flag'
-            }
-        }
-
-        if (!flagId) {
-            return {
-                success: false,
-                flagId: '',
-                error: 'Unable to select id for new feature flag'
-            }
-        }
-
-        return {
-            success: true,
-            flagId: flagId.id,
-            error: ''
-        }
-    } catch (e) {
-        // redirect() throws a Next.js sentinel value — must re-throw or the redirect is swallowed.
-        // AbortController.abort() throws a DOMException that Supabase doesn't catch internally,
-        // so a timeout firing lands here instead of in the { data, error } result object.
-        if (isRedirectError(e)) throw e
+    if (!validName.success) {
         return {
             success: false,
             flagId: '',
-            error: 'Request timed out or failed unexpectedly'
+            error: 'Invalid name type'
         }
-    } finally {
-        clearTimeout(timeout)
+    }
+
+    const { data: flagId, error: insertFlagError } = await client
+        .from('feature_flags')
+        .upsert(
+            { name: validName.data.flagName, global_enabled: false },
+            { onConflict: 'name', ignoreDuplicates: true }
+        )
+        .select()
+        .single()
+
+
+    if (insertFlagError) {
+        return {
+            success: false,
+            flagId: '',
+            error: 'Unable to insert feature flag'
+        }
+    }
+
+    if (!flagId) {
+        return {
+            success: false,
+            flagId: '',
+            error: 'Unable to select id for new feature flag'
+        }
+    }
+
+    return {
+        success: true,
+        flagId: flagId.id,
+        error: ''
     }
 
 }
