@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { addFeatureFlag, enableGlobalAccess, enableUserAccess } from "../server/feature-flag-server-actions";
 import { useRouter } from "next/navigation";
-import { AddFeatureFlagResults } from "../schemas/schemas";
-import { Error } from "@/app/types/errors";
 
 interface FeatureFlags {
   id: string,
@@ -60,7 +58,8 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
   const [isAdding, setIsAdding] = useState(false);
   const [isSelecting, setIsSelecting] = useState<boolean>(false)
   const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false)
-  const [isToggling, setIsToggling] = useState<boolean>(false)
+  const [isGlobalToggling, setIsGlobalToggling] = useState<boolean>(false)
+  const [togglingUserId, setTogglingUserId] = useState<string | null>(null)
 
   const currentFlagData = featFlags.find(f => f.id === currentFlag)
   const isGlobalOn = currentFlagData?.global_enabled ?? false
@@ -98,7 +97,7 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
     setIsSelecting(false)
     setIsAdding(false)
     setIsLoadingUsers(false)
-    
+
   }, [featureFlags, users, page, currentFlagId, searchQuery])
 
   useEffect(() => {
@@ -126,34 +125,52 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  /*
+   * enableGlobalAccess is idempotent — if the timeout fires before the response
+   * arrives but the DB write went through, retrying with the same value is safe.
+   */
   const toggleFlagGlobal = async (flagId: string, enabled: boolean) => {
 
-    setIsToggling(true)
-    const result = await enableGlobalAccess(flagId, enabled)
-    if (!result.success) {
-      setError('Unable to update global access')
-      setIsToggling(false)
-      return;
+    setIsGlobalToggling(true)
+
+    try {
+      const result = await withTimeout(enableGlobalAccess(flagId, enabled))
+      if (!result.success) {
+        setError('Unable to update global access')
+        setIsGlobalToggling(false)
+        return;
+      }
+      setFeatFlags(prev => prev.map(flag =>
+        flag.id === flagId ? { ...flag, global_enabled: enabled } : flag
+      ))
+      setIsGlobalToggling(false)
+    } catch {
+      setIsGlobalToggling(false)
     }
-    setFeatFlags(prev => prev.map(flag =>
-      flag.id === flagId ? { ...flag, global_enabled: enabled } : flag
-    ))
-    setIsToggling(false)
   }
 
+  /*
+   * enableUserAccess is idempotent — if the timeout fires before the response
+   * arrives but the DB write went through, retrying with the same value is safe.
+   */
   const toggleFlagUser = async (userId: string, flagId: string, enabled: boolean) => {
-    setIsToggling(true)
-    const result = await enableUserAccess(flagId, userId, enabled)
-    if (!result.success) {
-      setError('Unable to update users flag')
-      setIsToggling(false)
-      return
-    }
+    setTogglingUserId(userId)
 
-    setIsToggling(false)
-    setFeatUsers(prev => prev.map(user =>
-      user.id === userId ? { ...user, enabled } : user
-    ))
+    try {
+      const result = await withTimeout(enableUserAccess(flagId, userId, enabled))
+      if (!result.success) {
+        setError('Unable to update users flag')
+        setTogglingUserId(null)
+        return
+      }
+
+      setTogglingUserId(null)
+      setFeatUsers(prev => prev.map(user =>
+        user.id === userId ? { ...user, enabled } : user
+      ))
+    } catch {
+      setTogglingUserId(null)
+    }
   }
 
   const selectFlag = (flagId: string) => {
@@ -172,10 +189,7 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
       }
 
       setIsAdding(true)
-      const result = await Promise.race([
-        addFeatureFlag(newFlagName),
-        new Promise<never>((_, reject) => setTimeout(() => reject('Create new feature flag call timed out'), 5000))
-      ])
+      const result = await withTimeout(addFeatureFlag(newFlagName))
 
       if (!result.success) {
         setError('Unable to add feature flag')
@@ -282,6 +296,7 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
                   <Toggle
                     checked={isGlobalOn}
                     size="lg"
+                    loading={isGlobalToggling}
                     onChange={checked => currentFlagData && toggleFlagGlobal(currentFlagData.id, checked)}
                   />
                 </div>
@@ -333,6 +348,7 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
                             <Toggle
                               checked={user.enabled}
                               size="sm"
+                              loading={togglingUserId === user.id}
                               onChange={checked => toggleFlagUser(user.id, currentFlag, checked)}
                             />
                           </div>
@@ -450,8 +466,36 @@ function StatusBadge({ on }: { on: boolean }) {
   )
 }
 
-function Toggle({ checked, size, onChange }: { checked: boolean; size: 'lg' | 'sm'; onChange: (checked: boolean) => void }) {
+function Spinner({ size }: { size: 'lg' | 'sm' }) {
+  const dim = size === 'lg' ? 18 : 14
+  return (
+    <>
+      <style>{`@keyframes ff-spin { to { transform: rotate(360deg) } }`}</style>
+      <div style={{ width: dim, height: dim, borderRadius: '50%', border: '2px solid rgba(139,94,60,0.2)', borderTopColor: '#8B5E3C', animation: 'ff-spin 0.7s linear infinite', flexShrink: 0 }} />
+    </>
+  )
+}
+
+function Toggle({
+  checked,
+  size,
+  loading,
+  onChange,
+}:
+  {
+    checked: boolean;
+    size: 'lg' | 'sm';
+    loading?: boolean;
+    onChange: (checked: boolean) => void
+  }) {
   const isLg = size === 'lg'
+  if (loading) {
+    return (
+      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: isLg ? 48 : 36, height: isLg ? 26 : 20 }}>
+        <Spinner size={size} />
+      </div>
+    )
+  }
   return (
     <div
       onClick={() => onChange(!checked)}
