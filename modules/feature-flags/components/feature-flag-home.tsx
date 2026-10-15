@@ -130,6 +130,11 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
    * arrives but the DB write went through, retrying with the same value is safe.
    * Note: withTimeout only bounds the client-side wait. A network stall between
    * the server and Supabase can still hang the action server-side indefinitely.
+   * At scale this matters: stalled actions hold server slots and pgBouncer pool
+   * connections open simultaneously, and enough concurrent stalls can exhaust the
+   * pool and take down unrelated requests. At current traffic this is not a concern,
+   * but high-concurrency endpoints should pass an AbortSignal to the Supabase query
+   * so both sides are released on timeout.
    */
   const toggleFlagGlobal = async (flagId: string, enabled: boolean) => {
 
