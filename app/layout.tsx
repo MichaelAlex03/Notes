@@ -24,8 +24,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
 
-  const userPermissions = fetchUserPermissions();
-
   return (
     <html
       lang="en"

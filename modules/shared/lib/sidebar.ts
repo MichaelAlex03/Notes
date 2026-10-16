@@ -5,12 +5,12 @@ export const filterAllowableTabs = (permissions: Permission[]): SidebarObjects[]
     const SIDEBAR_NAVS: SidebarObjects[] = [
         {
             name: 'All Notes',
-            visible: permissions.includes('feature-flag.manage'),
+            visible: true,
             href: '/home'
         },
         {
             name: 'Folders',
-            visible: permissions.includes('feature-flag.manage'),
+            visible: true,
             href: '/home/folders'
         },
         {
@@ -18,6 +18,11 @@ export const filterAllowableTabs = (permissions: Permission[]): SidebarObjects[]
             visible: permissions.includes('feature-flag.manage'),
             href: '/home/feature-flags'
         },
+        {
+            name: 'Permissions',
+            visible: permissions.includes('permissions.manage'),
+            href: '/home/permissions'
+        }
     ]
 
 

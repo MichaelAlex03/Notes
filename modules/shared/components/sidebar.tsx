@@ -13,9 +13,10 @@ const ICONS: Record<string, string> = {
     'All Notes': '◈',
     'Folders': '📁',
     'Feature Flags': '⚑',
+    'Permissions' : '⚑'
 }
 
-const ADMIN_LINKS = new Set(['Feature Flags'])
+const ADMIN_LINKS = new Set(['Feature Flags, Permissions'])
 
 const linkStyle = (active: boolean): React.CSSProperties => ({
     display: 'flex',

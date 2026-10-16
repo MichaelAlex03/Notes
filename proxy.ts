@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifyAccessToken } from './modules/auth'
-import { refresh } from './modules/auth/index'
+import { verifyAccessToken } from './modules/authentication'
+import { refresh } from './modules/authentication/index'
 
 // This function can be marked `async` if using `await` inside
 export async function proxy(request: NextRequest) {

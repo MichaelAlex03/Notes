@@ -1,6 +1,6 @@
 'use server'
 
-import { customSACaller } from "@/modules/auth"
+import { customSACaller } from "@/modules/authentication"
 import { supabaseClient } from "@/supabase/client"
 import { type Error } from "@/app/types/errors"
 import { extractJwt } from "@/modules/shared/extract-jwt"

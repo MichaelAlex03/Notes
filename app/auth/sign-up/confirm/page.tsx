@@ -1,5 +1,5 @@
 import React from 'react'
-import { ConfirmPage } from '@/modules/auth'
+import { ConfirmPage } from '@/modules/authentication'
 
 const ConfirmSignUp = () => {
   return (
