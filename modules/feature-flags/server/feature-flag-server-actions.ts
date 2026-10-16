@@ -163,7 +163,7 @@ export const addFeatureFlag = async (flagName: string): Promise<AddFeatureFlagRe
         .from('feature_flags')
         .upsert(
             { name: validName.data.flagName, global_enabled: false },
-            { onConflict: 'name', ignoreDuplicates: true }
+            { onConflict: 'name' }
         )
         .select()
         .single()

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { FeatureFlagHome, getFeatureFlags, getUsers, UserResults } from '@/modules/feature-flags'
 import { supabaseClient } from '@/supabase/client';
 import { extractJwt } from '@/modules/shared/extract-jwt';
+import { FeatureFlagResults } from '@/modules/feature-flags/schemas/schemas';
 
 interface FeatureFlagsProps {
     searchParams: Promise<{ page: string | undefined, flagId: string | undefined, searchQuery: string | undefined }>;
@@ -18,16 +19,22 @@ const page = async ({ searchParams }: FeatureFlagsProps) => {
 
 
     if (permissionError || !permissionCheck) {
-        redirect('/home/admin')
+        redirect('/home')
     }
 
-    const featureFlags = await getFeatureFlags();
+    let featureFlags: FeatureFlagResults[] | undefined;
+    try {
+        featureFlags = await getFeatureFlags();
+    } catch {
+        redirect('/home')
+    }
+
     let parsedPage: number | undefined;
     let validFlagId: string | undefined;
     let search: string | undefined;
     let users: UserResults | undefined;
 
-    if (featureFlags.length > 0) {
+    if (featureFlags && featureFlags.length > 0) {
 
         const { page, flagId, searchQuery } = await searchParams
         search = searchQuery ?? ''
@@ -57,7 +64,7 @@ const page = async ({ searchParams }: FeatureFlagsProps) => {
 
     return (
         <FeatureFlagHome
-            featureFlags={featureFlags}
+            featureFlags={featureFlags ?? []}
             users={users?.users}
             moreData={users?.moreData}
             page={parsedPage}

@@ -10,7 +10,7 @@ export const fetchFeatureFlags = async (): Promise<FeatureFlagResults[]> => {
         .from('feature_flags')
         .select('*')
 
-    if (featureFlagErrors || !featureFlags) {
+    if (featureFlagErrors) {
         throw new Error('Unable to fetch feature flags')
     }
 

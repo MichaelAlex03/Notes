@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { addFeatureFlag, enableGlobalAccess, enableUserAccess } from "../server/feature-flag-server-actions";
+import { withTimeout } from "../../shared/lib/lib";
 import { useRouter } from "next/navigation";
 
 interface FeatureFlags {
@@ -60,6 +61,12 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
   const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false)
   const [isGlobalToggling, setIsGlobalToggling] = useState<boolean>(false)
   const [togglingUserId, setTogglingUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!error) return
+    const t = setTimeout(() => setError('' as Errors), 4000)
+    return () => clearTimeout(t)
+  }, [error])
 
   const currentFlagData = featFlags.find(f => f.id === currentFlag)
   const isGlobalOn = currentFlagData?.global_enabled ?? false
@@ -186,6 +193,7 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
     setDropdownOpen(false)
     setFlagSearch('')
     setIsSelecting(true)
+    setCurrentFlag(flagId)
     updateFilter(1, flagId, '')
   }
 
@@ -278,6 +286,14 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
         </div>
       </div>
 
+      {/* Error banner — toggle/action errors only; modal errors are shown inline */}
+      {(error === 'Unable to update global access' || error === 'Unable to update users flag') && (
+        <div style={{ margin: '12px 24px 0', padding: '10px 14px', background: 'rgba(192,57,43,0.07)', border: '1px solid rgba(192,57,43,0.2)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <span style={{ fontSize: 12.5, color: '#C0392B', fontWeight: 500 }}>{error}</span>
+          <button onClick={() => setError('' as Errors)} style={{ background: 'none', border: 'none', color: '#C0392B', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 2px', fontFamily: 'inherit' }}>×</button>
+        </div>
+      )}
+
       {/* Page body */}
       <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -290,33 +306,35 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
         ) : (
           <>
             {/* Global access card */}
-            <div style={{ background: '#fff', border: `2px solid ${isGlobalOn ? 'rgba(45,106,79,0.35)' : '#E8DDD0'}`, borderRadius: 12, overflow: 'hidden', flexShrink: 0, transition: 'border-color 0.2s' }}>
-              <div style={{ padding: '20px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 10, background: isGlobalOn ? 'rgba(45,106,79,0.1)' : '#F2E8D6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, transition: 'background 0.2s' }}>🌐</div>
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1510', marginBottom: 3 }}>Global Access</div>
-                    <div style={{ fontSize: 12.5, color: '#A89070', lineHeight: 1.5, maxWidth: 480 }}>
-                      When enabled, <strong style={{ color: '#6B5744' }}>{currentFlagData?.name}</strong> is turned on for <strong style={{ color: '#6B5744' }}>all users</strong> automatically. Individual user overrides are disabled while global access is on.
+            {isSelecting || isAdding ? <GlobalCardSkeleton /> : (
+              <div style={{ background: '#fff', border: `2px solid ${isGlobalOn ? 'rgba(45,106,79,0.35)' : '#E8DDD0'}`, borderRadius: 12, overflow: 'hidden', flexShrink: 0, transition: 'border-color 0.2s' }}>
+                <div style={{ padding: '20px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{ width: 42, height: 42, borderRadius: 10, background: isGlobalOn ? 'rgba(45,106,79,0.1)' : '#F2E8D6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0, transition: 'background 0.2s' }}>🌐</div>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1510', marginBottom: 3 }}>Global Access</div>
+                      <div style={{ fontSize: 12.5, color: '#A89070', lineHeight: 1.5, maxWidth: 480 }}>
+                        When enabled, <strong style={{ color: '#6B5744' }}>{currentFlagData?.name}</strong> is turned on for <strong style={{ color: '#6B5744' }}>all users</strong> automatically. Individual user overrides are disabled while global access is on.
+                      </div>
                     </div>
                   </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+                    <StatusBadge on={isGlobalOn} />
+                    <Toggle
+                      checked={isGlobalOn}
+                      size="lg"
+                      loading={isGlobalToggling}
+                      onChange={checked => currentFlagData && toggleFlagGlobal(currentFlagData.id, checked)}
+                    />
+                  </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
-                  <StatusBadge on={isGlobalOn} />
-                  <Toggle
-                    checked={isGlobalOn}
-                    size="lg"
-                    loading={isGlobalToggling}
-                    onChange={checked => currentFlagData && toggleFlagGlobal(currentFlagData.id, checked)}
-                  />
-                </div>
+                {isGlobalOn && (
+                  <div style={{ background: 'rgba(45,106,79,0.06)', borderTop: '1px solid rgba(45,106,79,0.15)', padding: '10px 22px', fontSize: 12, color: '#2D6A4F', display: 'flex', alignItems: 'center', gap: 7 }}>
+                    🔒 Individual toggles are disabled — all users inherit global access.
+                  </div>
+                )}
               </div>
-              {isGlobalOn && (
-                <div style={{ background: 'rgba(45,106,79,0.06)', borderTop: '1px solid rgba(45,106,79,0.15)', padding: '10px 22px', fontSize: 12, color: '#2D6A4F', display: 'flex', alignItems: 'center', gap: 7 }}>
-                  🔒 Individual toggles are disabled — all users inherit global access.
-                </div>
-              )}
-            </div>
+            )}
 
             {/* User list card — only when >1 flags */}
             {featFlags.length > 0 && (
@@ -330,13 +348,13 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
                     value={studentLookup}
                     onChange={e => setStudentLookup(e.target.value)}
                     placeholder="⌕  Search users…"
-                    disabled={isGlobalOn}
+                    disabled={isGlobalOn || isSelecting || isAdding}
                     style={{ background: '#F2E8D6', border: '1px solid #E8DDD0', borderRadius: 7, padding: '6px 10px', fontFamily: 'inherit', fontSize: 12, color: '#6B5744', outline: 'none', width: 180, opacity: isGlobalOn ? 0.45 : 1, cursor: isGlobalOn ? 'not-allowed' : 'text', transition: 'opacity 0.2s' }}
                   />
                 </div>
 
                 <div style={{ flex: 1, overflowY: 'auto' }}>
-                  {isLoadingUsers ? (
+                  {isSelecting || isAdding || isLoadingUsers ? (
                     <UserListSkeleton />
                   ) : (
                     featUsers.map((user, i) => {
@@ -405,8 +423,10 @@ const FeatureFlagHome = ({ featureFlags, users, moreData, page, currentFlagId, s
                 onFocus={e => (e.target.style.borderColor = '#8B5E3C')}
                 onBlur={e => (e.target.style.borderColor = '#E8DDD0')}
               />
-              {error === 'Flag already exists' && (
-                <span style={{ fontSize: 12, color: '#C0392B' }}>A flag with this name already exists.</span>
+              {(error === 'Flag already exists' || error === 'Unable to add feature flag') && (
+                <span style={{ fontSize: 12, color: '#C0392B' }}>
+                  {error === 'Flag already exists' ? 'A flag with this name already exists.' : 'Unable to add flag. Please try again.'}
+                </span>
               )}
             </div>
 
@@ -449,6 +469,26 @@ function UserListSkeleton() {
         </div>
       ))}
     </>
+  )
+}
+
+function GlobalCardSkeleton() {
+  return (
+    <div style={{ background: '#fff', border: '2px solid #E8DDD0', borderRadius: 12, overflow: 'hidden', flexShrink: 0 }}>
+      <div style={{ padding: '20px 22px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 10, background: '#F2E8D6', flexShrink: 0 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ width: 100, height: 14, borderRadius: 6, background: '#F2E8D6' }} />
+            <div style={{ width: 280, height: 11, borderRadius: 6, background: '#F2E8D6' }} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+          <div style={{ width: 62, height: 22, borderRadius: 20, background: '#F2E8D6' }} />
+          <div style={{ width: 48, height: 26, borderRadius: 20, background: '#F2E8D6' }} />
+        </div>
+      </div>
+    </div>
   )
 }
 
