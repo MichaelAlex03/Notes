@@ -14,7 +14,7 @@ CREATE INDEX indx_role_perms_lookup ON role_permissions (role_id);
 
 ALTER TABLE role_permissions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY view_role_permissions ON role_permissions FOR SELECT TO authenticated USING (true);
+CREATE POLICY view_role_permissions ON role_permissions FOR SELECT TO authenticated USING (has_role());
 
 REVOKE ALL ON role_permissions FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON role_permissions TO authenticated;

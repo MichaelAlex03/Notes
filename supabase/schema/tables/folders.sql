@@ -12,7 +12,7 @@ CREATE INDEX dx_folder_user_lookup ON folders (user_id);
 
 ALTER TABLE folders ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY users_select_own ON folders FOR SELECT TO authenticated USING (user_id = auth.uid());
-CREATE POLICY users_insert_own ON folders FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
-CREATE POLICY users_update_own ON folders FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
-CREATE POLICY users_delete_own ON folders FOR DELETE TO authenticated USING (user_id = auth.uid());
+CREATE POLICY users_select_own ON folders FOR SELECT TO authenticated USING (user_id = auth.uid() AND has_role());
+CREATE POLICY users_insert_own ON folders FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid() AND has_role());
+CREATE POLICY users_update_own ON folders FOR UPDATE TO authenticated USING (user_id = auth.uid() AND has_role()) WITH CHECK (user_id = auth.uid() AND has_role());
+CREATE POLICY users_delete_own ON folders FOR DELETE TO authenticated USING (user_id = auth.uid() AND has_role());

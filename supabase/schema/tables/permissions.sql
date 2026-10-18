@@ -10,7 +10,7 @@ CREATE TABLE permissions (
 
 ALTER TABLE permissions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY view_permissions ON permissions FOR SELECT TO authenticated USING (true);
+CREATE POLICY view_permissions ON permissions FOR SELECT TO authenticated USING (has_role());
 
 REVOKE ALL ON permissions FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON permissions TO authenticated;

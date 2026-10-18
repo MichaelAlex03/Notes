@@ -15,7 +15,7 @@ CREATE INDEX idx_notes_user_lookup ON notes (user_id, folder_id);
 
 ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY users_select_own ON notes FOR SELECT TO authenticated USING (user_id = auth.uid());
-CREATE POLICY users_insert_own ON notes FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
-CREATE POLICY users_update_own ON notes FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
-CREATE POLICY users_delete_own ON notes FOR DELETE TO authenticated USING (user_id = auth.uid());
+CREATE POLICY users_select_own ON notes FOR SELECT TO authenticated USING (user_id = auth.uid() AND has_role());
+CREATE POLICY users_insert_own ON notes FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid() AND has_role());
+CREATE POLICY users_update_own ON notes FOR UPDATE TO authenticated USING (user_id = auth.uid() AND has_role()) WITH CHECK (user_id = auth.uid() AND has_role());
+CREATE POLICY users_delete_own ON notes FOR DELETE TO authenticated USING (user_id = auth.uid() AND has_role());
