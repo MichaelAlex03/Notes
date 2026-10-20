@@ -41,11 +41,12 @@ export const signUp = async (data: SignUp) => {
         }
     }
 
-    const { password, ...profile } = validData.data
+    const { password, user_email, ...profile } = validData.data
     const securePass = await createHashedPassword(password)
     const emailCode = generateCode()
     const newUser = {
         ...profile,
+        user_email: user_email.toLowerCase().trim(),
         user_password: securePass,
         email_code: emailCode,
         email_expiration: new Date(Date.now() + 15 * 60 * 1000).toISOString()
