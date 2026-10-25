@@ -20,6 +20,7 @@ grant update on user_roles to authenticated;
 -- Need to check if the user has the correct permissions and the role is under their hierarchy level
 create or replace function is_allowed_to_update_user(
     p_target_role_id uuid
+    p_target_user_id uuid
 )
 returns boolean
 language plpgsql
@@ -30,6 +31,11 @@ declare
     actor_hierarchy_level int;
     target_role_hierarchy_level int;
 begin
+
+    if p_target_user_id = auth.uid() then
+        raise notice 'cannot update yourself';
+    end if
+
     select has_permission('permissions.manage') into has_perm;
 
     select r.hierarchy_level into actor_hierarchy_level
@@ -62,5 +68,5 @@ create policy elevated_update_access
 on user_roles
 for update
 to authenticated
-using ( is_allowed_to_update_user(role_id) )
-with check ( is_allowed_to_update_user(role_id) );
+using ( is_allowed_to_update_user(role_id, user_id) )
+with check ( is_allowed_to_update_user(role_id, user_id) );

@@ -18,8 +18,8 @@ ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY view_own_roles ON user_roles FOR SELECT TO authenticated USING (user_id = auth.uid());
 CREATE POLICY elevated_view_access ON user_roles FOR SELECT TO authenticated USING (has_permission('permissions.manage'));
 CREATE POLICY elevated_update_access ON user_roles FOR UPDATE TO authenticated
-    USING (is_allowed_to_update_user(role_id))
-    WITH CHECK (is_allowed_to_update_user(role_id));
+    USING (is_allowed_to_update_user(role_id, user_id))
+    WITH CHECK (is_allowed_to_update_user(role_id, user_id));
 
 REVOKE ALL ON user_roles FROM PUBLIC, anon, authenticated;
 GRANT SELECT, UPDATE ON user_roles TO authenticated;
