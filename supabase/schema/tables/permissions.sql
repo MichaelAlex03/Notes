@@ -1,6 +1,6 @@
 -- TABLE: permissions
--- RLS: enabled — authenticated users can SELECT; mutations via service_role only.
---      DELETE is intentionally revoked from service_role (must go through postgres directly).
+-- RLS: enabled — authenticated users can SELECT; seed-only (no runtime mutations via service_role).
+--      All mutations are intentionally revoked from service_role (must go through postgres directly).
 
 CREATE TABLE permissions (
     id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -14,7 +14,7 @@ CREATE POLICY view_permissions ON permissions FOR SELECT TO authenticated USING 
 
 REVOKE ALL ON permissions FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON permissions TO authenticated;
-GRANT SELECT, INSERT, UPDATE ON permissions TO service_role;
+GRANT SELECT ON permissions TO service_role;
 
 -- Seeded rows
 -- ('feature-flag.manage') → admin

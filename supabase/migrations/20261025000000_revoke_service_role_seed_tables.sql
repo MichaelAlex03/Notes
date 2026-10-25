@@ -11,7 +11,7 @@ revoke insert, update, delete on roles from service_role;
 -- ============================================================
 -- GRANTS to authenticated on user_roles
 -- ============================================================
-grant insert, update on user_roles to authenticated;
+grant update on user_roles to authenticated;
 
 -- =======================================================================
 -- NEW FUNCTIONS for checking if a user can make a change to user_roles
@@ -27,8 +27,8 @@ security invoker
 as $$
 declare 
     has_perm boolean;
-    actor_hierarchy_level boolean;
-    target_role_hierarchy_level boolean;
+    actor_hierarchy_level int;
+    target_role_hierarchy_level int;
 begin
     select has_permission('permissions.manage') into has_perm;
 
@@ -57,23 +57,6 @@ for select
 to authenticated
 using (has_permission('permissions.manage'));
 
--- For insert and update need to make sure that the user can assign themselves 
--- that role given their role and auto allow for now if the role they are adding is hierarchy level 1
--- No custom roles added for now because someone could create a role with hierarchy level 1 with full admin access
--- and then user can assign themselves that role
--- make sure to put sign in process that adds this row a transaction so that user cant exist
--- without a user_roles permission to exist either. we will check for defense in depth but the case i explained
--- above could happen if the steps were not in a transaction and the user existed with no user_roles row
-create policy insert_own_rows
-on user_roles
-for insert
-to authenticated
-with check (
-    user_id = auth.uid()
-    and exists (
-        select 1 from roles where id = role_id and hierarchy_level = 1
-    )
-);
 
 create policy elevated_update_access
 on user_roles
