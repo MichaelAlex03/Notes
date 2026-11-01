@@ -1,0 +1,37 @@
+services:
+  production:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: notes-prod
+    container_name: notes-production
+    ports:
+      - "3000:3000"
+
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: notes-dev
+    container_name: notes-development
+    ports:
+      - "3000:3000"
+    environment:
+      - WATCHPACK_POLLING=true
+      - TURBOPACK_ROOT=/app
+    develop:
+      watch:
+        - path: .
+          action: sync
+          target: /app
+          ignore:
+            # container installs its own node_modules via npm ci to get Linux-compatible
+            # native binaries — syncing Mac's node_modules would overwrite with wrong platform binaries
+            - node_modules/
+            # .next is written by Next.js inside the container — syncing it would cause
+            # an infinite loop: container writes → sync triggers watchpack → recompile → repeat
+            - .next/
+        - action: rebuild
+          # package.json can change without dependency changes (scripts, metadata)
+          # only the lockfile changing means versions actually changed and npm ci needs to rerun
+          path: package-lock.json

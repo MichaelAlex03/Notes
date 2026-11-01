@@ -1,0 +1,21 @@
+ARG NODE_VERSION=24.14.0-slim
+
+FROM node:${NODE_VERSION} AS dev
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+
+# --no-audit: vulnerability checks run in CI before this build, not needed here
+# --no-fund: suppresses donation messages in build output
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund;
+
+COPY . .
+
+ENV WATCHPACK_POLLING=true
+ENV HOSTNAME="notes.dev"
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]
