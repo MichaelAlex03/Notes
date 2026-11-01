@@ -19,7 +19,7 @@ export async function proxy(request: NextRequest) {
     }
 
     const result = await verifyAccessToken(accessTokenCookie.value)
-    
+
     let response;
     if (!result.payload && result.expired) {
         const result = await refresh(refreshToken.value)
@@ -42,13 +42,12 @@ export async function proxy(request: NextRequest) {
             path: '/',
             maxAge: 60 * 60,
         })
-    
+
     }
 
 
     return response ?? NextResponse.next()
 }
-
 
 
 export const config = {

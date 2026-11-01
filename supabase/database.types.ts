@@ -1,370 +1,264 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
+  
+  "graphql_public": {
+          Tables: {
+            [_ in never]: never
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "graphql":
+{ Args: { "extensions"?: Json,"operationName"?: string,"query"?: string,"variables"?: Json }; Returns: Json
+                           }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"public": {
+          Tables: {
+            "feature_flag_user": {
+                  Row: {
+                    "enabled": boolean,"flag_id": string,"id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "enabled"?: boolean,"flag_id": string,"id"?: string,"user_id": string
+                  }
+                  Update: {
+                    "enabled"?: boolean,"flag_id"?: string,"id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "feature_flag_user_flag_id_fkey"
+      columns: ["flag_id"]
+isOneToOne: false
+      referencedRelation: "feature_flags"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "feature_flag_user_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "users"
+      referencedColumns: ["id"]
     }
-    Views: {
-      [_ in never]: never
+                  ]
+                },"feature_flags": {
+                  Row: {
+                    "global_enabled": boolean,"id": string,"name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "global_enabled"?: boolean,"id"?: string,"name": string
+                  }
+                  Update: {
+                    "global_enabled"?: boolean,"id"?: string,"name"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"folders": {
+                  Row: {
+                    "created_at": string,"folder_name": string,"id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"folder_name": string,"id"?: string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"folder_name"?: string,"id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "folders_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "users"
+      referencedColumns: ["id"]
     }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
+                  ]
+                },"notes": {
+                  Row: {
+                    "created_at": string,"folder_id": string,"id": string,"notes_content": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"folder_id": string,"id"?: string,"notes_content": string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"folder_id"?: string,"id"?: string,"notes_content"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notes_folder_id_fkey"
+      columns: ["folder_id"]
+isOneToOne: false
+      referencedRelation: "folders"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notes_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "users"
+      referencedColumns: ["id"]
     }
-    Enums: {
-      [_ in never]: never
+                  ]
+                },"permissions": {
+                  Row: {
+                    "id": string,"name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: string,"name": string
+                  }
+                  Update: {
+                    "id"?: string,"name"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"rate_limits": {
+                  Row: {
+                    "attempts": number,"event_type": string,"id": string,"identifier": string,"window_start": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attempts": number,"event_type": string,"id"?: string,"identifier": string,"window_start": string
+                  }
+                  Update: {
+                    "attempts"?: number,"event_type"?: string,"id"?: string,"identifier"?: string,"window_start"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"role_permissions": {
+                  Row: {
+                    "id": string,"permission_id": string,"role_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: string,"permission_id": string,"role_id": string
+                  }
+                  Update: {
+                    "id"?: string,"permission_id"?: string,"role_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "role_permissions_permission_id_fkey"
+      columns: ["permission_id"]
+isOneToOne: false
+      referencedRelation: "permissions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "role_permissions_role_id_fkey"
+      columns: ["role_id"]
+isOneToOne: false
+      referencedRelation: "roles"
+      referencedColumns: ["id"]
     }
-    CompositeTypes: {
-      [_ in never]: never
+                  ]
+                },"roles": {
+                  Row: {
+                    "hierarchy_level": number,"id": string,"name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "hierarchy_level"?: number,"id"?: string,"name": string
+                  }
+                  Update: {
+                    "hierarchy_level"?: number,"id"?: string,"name"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"user_roles": {
+                  Row: {
+                    "id": string,"role_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: string,"role_id": string,"user_id": string
+                  }
+                  Update: {
+                    "id"?: string,"role_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "user_roles_role_id_fkey"
+      columns: ["role_id"]
+isOneToOne: false
+      referencedRelation: "roles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "user_roles_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: true
+      referencedRelation: "users"
+      referencedColumns: ["id"]
     }
-  }
-  public: {
-    Tables: {
-      feature_flag_user: {
-        Row: {
-          enabled: boolean
-          flag_id: string
-          id: string
-          user_id: string
+                  ]
+                },"users": {
+                  Row: {
+                    "authenticated": boolean | null,"created_at": string,"email_code": number | null,"email_expiration": string | null,"first_name": string,"id": string,"last_name": string,"refresh_token": string | null,"user_email": string,"user_password": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "authenticated"?: boolean | null,"created_at"?: string,"email_code"?: number | null,"email_expiration"?: string | null,"first_name": string,"id"?: string,"last_name": string,"refresh_token"?: string | null,"user_email": string,"user_password": string
+                  }
+                  Update: {
+                    "authenticated"?: boolean | null,"created_at"?: string,"email_code"?: number | null,"email_expiration"?: string | null,"first_name"?: string,"id"?: string,"last_name"?: string,"refresh_token"?: string | null,"user_email"?: string,"user_password"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "check_rate_limit":
+{ Args: { "p_event_type": string,"p_identifier": string,"p_threshold": number,"p_window_size_ms": number }; Returns: {
+              "allowed": boolean,"attempts": number,"windowend": string
+            }[]
+                           },
+"get_user_permissions":
+{ Args: Record<PropertyKey, never>; Returns: (string)[]
+                           },
+"get_users_with_flag_override":
+{ Args: { "p_flag_id": string,"p_limit"?: number,"p_offset"?: number,"p_search"?: string }; Returns: {
+              "enabled": boolean,"first_name": string,"id": string,"last_name": string
+            }[]
+                           },
+"has_permission":
+{ Args: { "permission_name": string }; Returns: boolean
+                           },
+"has_role":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"is_allowed_to_update_user":
+{ Args: { "p_target_role_id": string }; Returns: boolean
+                           },
+"is_feature_enabled":
+{ Args: { "p_flag_name": string }; Returns: boolean
+                           }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
         }
-        Insert: {
-          enabled?: boolean
-          flag_id: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          enabled?: boolean
-          flag_id?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "feature_flag_user_flag_id_fkey"
-            columns: ["flag_id"]
-            isOneToOne: false
-            referencedRelation: "feature_flags"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feature_flag_user_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      feature_flags: {
-        Row: {
-          global_enabled: boolean
-          id: string
-          name: string
-        }
-        Insert: {
-          global_enabled?: boolean
-          id?: string
-          name: string
-        }
-        Update: {
-          global_enabled?: boolean
-          id?: string
-          name?: string
-        }
-        Relationships: []
-      }
-      folders: {
-        Row: {
-          created_at: string
-          folder_name: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          folder_name: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          folder_name?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "folders_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      notes: {
-        Row: {
-          created_at: string
-          folder_id: string
-          id: string
-          notes_content: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          folder_id: string
-          id?: string
-          notes_content: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          folder_id?: string
-          id?: string
-          notes_content?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notes_folder_id_fkey"
-            columns: ["folder_id"]
-            isOneToOne: false
-            referencedRelation: "folders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      permissions: {
-        Row: {
-          id: string
-          name: string
-        }
-        Insert: {
-          id?: string
-          name: string
-        }
-        Update: {
-          id?: string
-          name?: string
-        }
-        Relationships: []
-      }
-      rate_limits: {
-        Row: {
-          attempts: number
-          event_type: string
-          id: string
-          identifier: string
-          window_start: string
-        }
-        Insert: {
-          attempts: number
-          event_type: string
-          id?: string
-          identifier: string
-          window_start: string
-        }
-        Update: {
-          attempts?: number
-          event_type?: string
-          id?: string
-          identifier?: string
-          window_start?: string
-        }
-        Relationships: []
-      }
-      role_permissions: {
-        Row: {
-          id: string
-          permission_id: string
-          role_id: string
-        }
-        Insert: {
-          id?: string
-          permission_id: string
-          role_id: string
-        }
-        Update: {
-          id?: string
-          permission_id?: string
-          role_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "role_permissions_permission_id_fkey"
-            columns: ["permission_id"]
-            isOneToOne: false
-            referencedRelation: "permissions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "role_permissions_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "roles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      roles: {
-        Row: {
-          id: string
-          name: string
-        }
-        Insert: {
-          id?: string
-          name: string
-        }
-        Update: {
-          id?: string
-          name?: string
-        }
-        Relationships: []
-      }
-      user_roles: {
-        Row: {
-          id: string
-          role_id: string
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          role_id: string
-          user_id: string
-        }
-        Update: {
-          id?: string
-          role_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_roles_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "roles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_roles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      users: {
-        Row: {
-          authenticated: boolean | null
-          created_at: string
-          email_code: number | null
-          email_expiration: string | null
-          first_name: string
-          id: string
-          last_name: string
-          refresh_token: string | null
-          user_email: string
-          user_password: string
-        }
-        Insert: {
-          authenticated?: boolean | null
-          created_at?: string
-          email_code?: number | null
-          email_expiration?: string | null
-          first_name: string
-          id?: string
-          last_name: string
-          refresh_token?: string | null
-          user_email: string
-          user_password: string
-        }
-        Update: {
-          authenticated?: boolean | null
-          created_at?: string
-          email_code?: number | null
-          email_expiration?: string | null
-          first_name?: string
-          id?: string
-          last_name?: string
-          refresh_token?: string | null
-          user_email?: string
-          user_password?: string
-        }
-        Relationships: []
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      check_rate_limit: {
-        Args: {
-          p_event_type: string
-          p_identifier: string
-          p_threshold: number
-          p_window_size_ms: number
-        }
-        Returns: {
-          allowed: boolean
-          attempts: number
-          windowend: string
-        }[]
-      }
-      get_user_permissions: { Args: never; Returns: string[] }
-      get_users_with_flag_override: {
-        Args: {
-          p_flag_id: string
-          p_limit?: number
-          p_offset?: number
-          p_search?: string
-        }
-        Returns: {
-          enabled: boolean
-          first_name: string
-          id: string
-          last_name: string
-        }[]
-      }
-      has_permission: { Args: { permission_name: string }; Returns: boolean }
-      has_role: { Args: { p_role_name: string }; Returns: boolean }
-      is_feature_enabled: { Args: { p_flag_name: string }; Returns: boolean }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
 }
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
 
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
@@ -377,25 +271,21 @@ export type Tables<
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+    ? R
     : never
+  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
@@ -405,22 +295,20 @@ export type TablesInsert<
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Insert: infer I
+    }
+    ? I
     : never
+  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
@@ -430,22 +318,20 @@ export type TablesUpdate<
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+    : never = never
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Update: infer U
+    }
+    ? U
     : never
+  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
@@ -455,14 +341,12 @@ export type Enums<
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+    : never = never
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
@@ -472,21 +356,21 @@ export type CompositeTypes<
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+    : never = never
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
-  public: {
-    Enums: {},
-  },
+  "graphql_public": {
+          Enums: {
+            
+          }
+        },"public": {
+          Enums: {
+            
+          }
+        }
 } as const
-

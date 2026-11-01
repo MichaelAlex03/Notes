@@ -1,0 +1,1 @@
+export { loadRoles } from './server/permission.loader'
