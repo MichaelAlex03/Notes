@@ -12,25 +12,23 @@ export const enableGlobalAccess = async (flagId: string, enabled: boolean): Prom
     await customSACaller()
     const client = supabaseClient(await extractJwt())
 
-    // Defense-in-depth: RLS already blocks non-admins at the DB level, but checking here
-    // avoids a wasted round trip and makes the intent of this action explicit.
-    const { data: checkAdmin, error: checkAdminError } = await client.rpc('has_role', {
-        p_role_name: 'admin'
+
+    const { data: permCheck, error: permCheckError } = await client.rpc('has_permission',{
+        permission_name: 'feature-flag.manage'
     })
 
-    // Separate the RPC failure from the authorization failure so callers can distinguish
-    // between "we couldn't determine your role" and "you're definitely not an admin".
-    if (checkAdminError) {
+
+    if (permCheckError) {
         return {
             success: false,
-            error: 'Unable to check if user is admin'
+            error: 'Unable to check if user has privelige'
         }
     }
 
-    if (!checkAdmin) {
+    if (!permCheck) {
         return {
             success: false,
-            error: 'User is not admin unable to use this server action'
+            error: 'User is not able to use enable global access of feature flag'
         }
     }
 
@@ -58,25 +56,22 @@ export const enableUserAccess = async (flagId: string, userId: string, enabled: 
     await customSACaller()
     const client = supabaseClient(await extractJwt())
 
-    // Defense-in-depth: RLS already blocks non-admins at the DB level, but checking here
-    // avoids a wasted round trip and makes the intent of this action explicit.
-    const { data: checkAdmin, error: checkAdminError } = await client.rpc('has_role', {
-        p_role_name: 'admin'
+    const { data: permCheck, error: permCheckError } = await client.rpc('has_permission',{
+        permission_name: 'feature-flag.manage'
     })
 
-    // Separate the RPC failure from the authorization failure so callers can distinguish
-    // between "we couldn't determine your role" and "you're definitely not an admin".
-    if (checkAdminError) {
+
+    if (permCheckError) {
         return {
             success: false,
-            error: 'Unable to check if user is admin'
+            error: 'Unable to check if user has correct priveliges'
         }
     }
 
-    if (!checkAdmin) {
+    if (!permCheck) {
         return {
             success: false,
-            error: 'User is not admin unable to use this server action'
+            error: 'User is unable to use this server action'
         }
     }
 
