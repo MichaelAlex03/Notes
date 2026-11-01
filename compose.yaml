@@ -17,7 +17,6 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - WATCHPACK_POLLING=true
       - TURBOPACK_ROOT=/app
     develop:
       watch:
@@ -28,8 +27,8 @@ services:
             # container installs its own node_modules via npm ci to get Linux-compatible
             # native binaries — syncing Mac's node_modules would overwrite with wrong platform binaries
             - node_modules/
-            # .next is written by Next.js inside the container — syncing it would cause
-            # an infinite loop: container writes → sync triggers watchpack → recompile → repeat
+            # .next is container build output — your source files are the source of truth,
+            # not artifacts the container generates. write-back would also fail due to UID mismatch
             - .next/
         - action: rebuild
           # package.json can change without dependency changes (scripts, metadata)
