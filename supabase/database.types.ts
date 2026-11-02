@@ -243,7 +243,7 @@ isOneToOne: true
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "is_allowed_to_update_user":
-{ Args: { "p_target_role_id": string }; Returns: boolean
+{ Args: { "p_target_role_id": string, "p_target_user_id": string }; Returns: boolean
                            },
 "is_feature_enabled":
 { Args: { "p_flag_name": string }; Returns: boolean
