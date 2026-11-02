@@ -163,13 +163,9 @@ export const verifySignUp = async (verifyEmailData: Confirm) => {
 
 
 
-    const { error: signUpError } = await supabaseAdmin
-        .from('users')
-        .update({
-            authenticated: true,
-            email_code: null
-        })
-        .eq('user_email', email)
+    const { error: signUpError } = await supabaseAdmin.rpc('atomic_sign_up', {
+        p_email: email
+    })
 
     if (signUpError)
         return {
