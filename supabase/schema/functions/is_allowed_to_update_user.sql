@@ -1,9 +1,12 @@
--- FUNCTION: is_allowed_to_update_user(p_target_role_id uuid) → boolean
+-- FUNCTION: is_allowed_to_update_user(p_target_role_id uuid, p_target_user_id uuid) → boolean
 -- Returns true if the current user has permissions.manage AND their hierarchy level
--- is strictly greater than the target role's hierarchy level.
+-- is strictly greater than the target role's hierarchy level AND is not updating themselves.
 -- Used in RLS policies on user_roles to guard UPDATE operations.
 
-CREATE OR REPLACE FUNCTION is_allowed_to_update_user(p_target_role_id uuid)
+CREATE OR REPLACE FUNCTION is_allowed_to_update_user(
+    p_target_role_id uuid,
+    p_target_user_id uuid
+)
 RETURNS BOOLEAN
 LANGUAGE PLPGSQL
 SECURITY INVOKER
@@ -13,6 +16,10 @@ DECLARE
     actor_hierarchy_level       INT;
     target_role_hierarchy_level INT;
 BEGIN
+    IF p_target_user_id = auth.uid() THEN
+        RAISE NOTICE 'cannot update yourself';
+    END IF;
+
     SELECT has_permission('permissions.manage') INTO has_perm;
 
     SELECT r.hierarchy_level INTO actor_hierarchy_level
