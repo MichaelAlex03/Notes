@@ -16,7 +16,8 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-    v_attempts     INT DEFAULT 0;
+    v_attempts     INT;
+    v_new_attempts INT;
     v_id           UUID;
     v_window_start TIMESTAMPTZ;
     v_window_end   TIMESTAMPTZ;
@@ -30,19 +31,44 @@ BEGIN
     LIMIT 1
     FOR UPDATE;
 
-    v_window_end := v_window_start + (p_window_size_ms * interval '1 millisecond');
+
+    IF NOT FOUND THEN
+        -- No live window. Either no row exists (insert), an expired row exists (reset it),
+        -- or a concurrent request just created one (increment it).
+        INSERT INTO rate_limits AS rl (event_type, identifier, window_start, attempts)
+        VALUES (p_event_type, p_identifier, now(), 1)
+        ON CONFLICT (event_type, identifier) DO UPDATE
+        -- rl = the existing row, EXCLUDED = the row we tried to insert.
+        -- Existing window already ended by the time of the new row -> start over;
+        -- otherwise keep the existing window_start and only bump attempts.
+        SET window_start = CASE
+                WHEN rl.window_start + (p_window_size_ms * interval '1 millisecond') < EXCLUDED.window_start
+                THEN EXCLUDED.window_start ELSE rl.window_start END,
+            attempts = CASE
+                WHEN rl.window_start + (p_window_size_ms * interval '1 millisecond') < EXCLUDED.window_start
+                THEN EXCLUDED.attempts ELSE rl.attempts + 1 END
+        RETURNING rl.attempts, rl.window_start INTO v_new_attempts, v_window_start;
+
+        -- Concurrent first requests can both land here (FOR UPDATE locks nothing when
+        -- there is no row), so the threshold must be re-checked against the count the
+        -- upsert produced. v_new_attempts already includes this attempt, hence `>`.
+        IF v_new_attempts > p_threshold THEN
+            v_window_end := v_window_start + (p_window_size_ms * interval '1 millisecond');
+            RETURN QUERY SELECT false, v_new_attempts, v_window_end;
+            RETURN;
+        END IF;
+
+        RETURN QUERY SELECT true, v_new_attempts, null::TIMESTAMPTZ;
+        RETURN;
+    END IF;
 
     IF v_attempts >= p_threshold THEN
+        v_window_end := v_window_start + (p_window_size_ms * interval '1 millisecond');
         RETURN QUERY SELECT false, v_attempts, v_window_end;
         RETURN;
     END IF;
 
-    IF v_attempts = 0 THEN
-        INSERT INTO rate_limits (event_type, identifier, window_start, attempts)
-        VALUES (p_event_type, p_identifier, now(), 1);
-    ELSE
-        UPDATE rate_limits SET attempts = v_attempts + 1 WHERE id = v_id;
-    END IF;
+    UPDATE rate_limits SET attempts = v_attempts + 1 WHERE id = v_id;
 
     RETURN QUERY SELECT true, v_attempts + 1, null::TIMESTAMPTZ;
 END;

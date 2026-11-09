@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "../server-actions/signInServerAction";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { authSchema } from "../types/authenticate.schema";
+import { doesEmailNeedValidation, resendEmail } from "../server-actions/signUpServerAction";
 
 const SignInPage = () => {
     const router = useRouter()
@@ -17,6 +19,38 @@ const SignInPage = () => {
 
     const [error, setError] = useState<string>('');
     const [signingIn, setSigningIn] = useState<boolean>(false);
+    const [toggleAuthEmail, setToggleAuthEmail] = useState<boolean>(false);
+    const [verifyEmail, setVerifyEmail] = useState<string>('');
+    const [verifying, setVerifying] = useState<boolean>(false)
+
+    const closeAuthEmail = () => {
+        setToggleAuthEmail(false)
+        setVerifyEmail('')
+        setError('')
+    }
+
+    const goToConfirmEmail = async (email: string) => {
+
+        setVerifying(true)
+
+        const validEmail = authSchema.safeParse({ email })
+        console.log(validEmail)
+        if (!validEmail.success){
+            setError('Invalid email')
+            setVerifying(false)
+            return;
+        }
+
+        const result = await doesEmailNeedValidation(validEmail.data.email)
+        if (!result.success){
+            setError(result.error)
+            setVerifying(false)
+            return
+        }
+
+        router.replace(`/sign-up/confirm?email=${encodeURIComponent(validEmail.data.email)}`)
+        setVerifying(false)
+    }
 
     const onSubmit: SubmitHandler<SignIn> = async (data) => {
         setSigningIn(true)
@@ -123,18 +157,88 @@ const SignInPage = () => {
                         </button>
                     </form>
 
-                    <p className="mt-6 text-center text-[13px]" style={{ color: '#6B5744' }}>
-                        Don&apos;t have an account?{' '}
-                        <button
-                            onClick={() => router.push('/auth/sign-up')}
-                            className="font-medium hover:underline bg-transparent border-none cursor-pointer"
-                            style={{ color: '#8B5E3C' }}
-                        >
-                            Sign up
-                        </button>
-                    </p>
+                    <div className="mt-4 flex flex-row justify-between items-center">
+                        <p className=" text-center text-[13px]" style={{ color: '#6B5744' }}>
+                            Don&apos;t have an account?{' '}
+                            <button
+                                onClick={() => router.push('/auth/sign-up')}
+                                className="font-medium hover:underline bg-transparent border-none cursor-pointer"
+                                style={{ color: '#8B5E3C' }}
+                            >
+                                Sign up
+                            </button>
+                        </p>
+
+                        <p className="text-center text-[13px]" style={{ color: '#6B5744' }}>
+                            Need to verify account?{' '}
+                            <button
+                                onClick={() => setToggleAuthEmail(true)}
+                                className="font-medium hover:underline bg-transparent border-none cursor-pointer"
+                                style={{ color: '#8B5E3C' }}
+                            >
+                                Verify
+                            </button>
+                        </p>
+                    </div>
+
                 </div>
             </div>
+
+            {toggleAuthEmail && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-6"
+                    style={{ background: 'rgba(28,21,16,0.55)' }}
+                    onClick={closeAuthEmail}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        className="w-full max-w-85 rounded-xl p-6 flex flex-col gap-4"
+                        style={{ background: '#FDFAF6' }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div>
+                            <h2 className="text-xl font-semibold tracking-tight" style={{ color: '#1C1510' }}>Verify your account</h2>
+                            <p className="text-sm mt-1" style={{ color: '#6B5744' }}>Enter your email to continue.</p>
+                        </div>
+
+                        <input
+                            type="email"
+                            value={verifyEmail}
+                            onChange={e => setVerifyEmail(e.target.value)}
+                            placeholder="you@example.com"
+                            autoFocus
+                            className="bg-white rounded-lg px-3 py-2.5 text-sm outline-none placeholder:text-[#C4B09A]"
+                            style={{ border: '1.5px solid #C8B89A', color: '#1C1510' }}
+                        />
+
+                        {error && (
+                            <div className="text-[13px] rounded-lg px-3 py-2.5" style={{ color: '#B54A2A', background: 'rgba(181,74,42,0.07)', border: '1px solid rgba(181,74,42,0.2)' }}>
+                                {error}
+                            </div>
+                        )}
+
+                        <div className="flex gap-2">
+                            <button
+                                onClick={closeAuthEmail}
+                                className="flex-1 text-sm py-2.5 rounded-lg cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                style={{ border: '1.5px solid #C8B89A', color: '#6B5744' }}
+                                disabled={verifying}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => goToConfirmEmail(verifyEmail)}
+                                className="flex-1 font-semibold text-sm py-2.5 rounded-lg cursor-pointer transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                                style={{ background: '#2D2318', color: '#E8D5B7' }}
+                                disabled={verifying}
+                            >
+                                {verifying ? '...Verifying' : 'Continue'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

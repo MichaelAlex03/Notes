@@ -6,11 +6,13 @@ import { sendVerifyEmail } from "../lib/emails";
 import { createHashedPassword, generateCode } from "../lib/signUp";
 import { randomInt } from "crypto";
 import { headers } from 'next/headers'
+import { authSchema } from "../types/authenticate.schema";
 
 const RATE_LIMIT_WINDOW = 300000
 
 
 export const signUp = async (data: SignUp) => {
+
 
     const h = await headers()
     const ip = h.get('x-forwarded-for')?.split(',')[0].trim() ?? h.get('x-real-ip') ?? 'unknown'
@@ -182,6 +184,14 @@ export const verifySignUp = async (verifyEmailData: Confirm) => {
 
 export const resendEmail = async (email: string) => {
 
+    const validEmail = authSchema.safeParse(email)
+    if (!validEmail.success) {
+        return {
+            success: false,
+            error: 'Invalid email'
+        }
+    }
+
     const h = await headers()
     const ip = h.get('x-forwarded-for')?.split(',')[0].trim() ?? h.get('x-real-ip') ?? 'unknown'
 
@@ -242,5 +252,105 @@ export const resendEmail = async (email: string) => {
             success: false,
             error: 'Failed to send verification email'
         }
+    }
+}
+
+
+export const doesEmailNeedValidation = async (email: string) => {
+
+
+
+    const validEmail = authSchema.safeParse({ email })
+    if (!validEmail.success) {
+        return {
+            success: false,
+            error: 'Invalid email'
+        }
+    }
+
+    const h = await headers()
+    const ip = h.get('x-forwarded-for')?.split(',')[0].trim() ?? h.get('x-real-ip') ?? 'unknown'
+
+    const { data: ipRateLimits, error: ipRateLimitError } = await supabaseAdmin.rpc('check_rate_limit', {
+        p_event_type: 'verify.resend',
+        p_window_size_ms: RATE_LIMIT_WINDOW,
+        p_identifier: ip,
+        p_threshold: 10
+    })
+
+    if (!ipRateLimits || ipRateLimitError) {
+        return {
+            success: false,
+            error: 'Unable to fetch rate limits'
+        }
+    }
+
+    const remainingMinutes = Math.ceil((new Date(ipRateLimits[0].windowend).getTime() - Date.now()) / (1000 * 60))
+    if (!ipRateLimits[0].allowed) return { success: false, error: `Too many attempts try again in ${remainingMinutes}` }
+
+    const { data: emailRateLimits, error: emailRateLimitError } = await supabaseAdmin.rpc('check_rate_limit', {
+        p_event_type: 'verify.sign.up',
+        p_window_size_ms: RATE_LIMIT_WINDOW,
+        p_identifier: email,
+        p_threshold: 10
+    })
+
+    if (!emailRateLimits || emailRateLimitError) {
+        return {
+            success: false,
+            error: 'Unable to fetch rate limits'
+        }
+    }
+
+    const emailRemainingMinutes = Math.ceil(new Date(emailRateLimits[0].windowend).getTime() - Date.now() / (1000 * 60))
+    if (!emailRateLimits[0].allowed) return { success: false, error: `Too many attempts try again in ${emailRemainingMinutes}` }
+
+
+    const { data: user, error: userError } = await supabaseAdmin
+        .from('users')
+        .select('id, authenticated')
+        .eq('user_email', validEmail.data.email)
+        .single()
+
+    if (!user || userError) {
+        return {
+            success: false,
+            error: 'User not found'
+        }
+    }
+
+    if (user && user.authenticated === true) {
+        return {
+            success: false,
+            error: 'User already authenticated'
+        }
+    }
+
+    const emailCode = randomInt(100000, 1000000)
+
+    const { error: updateUserErr } = await supabaseAdmin
+        .from('users')
+        .update({ email_code: emailCode })
+        .eq('user_email', validEmail.data.email)
+
+    if (updateUserErr) {
+        return {
+            success: false,
+            error: 'Unable to update email code for user try again'
+        }
+    }
+
+    try {
+        await sendVerifyEmail(email, emailCode)
+    } catch (error) {
+        return {
+            success: false,
+            error: 'Failed to send verification email'
+        }
+    }
+
+    return {
+        success: true,
+        error: ''
     }
 }
