@@ -7,7 +7,8 @@ CREATE TABLE rate_limits (
     identifier   TEXT        NOT NULL,
     event_type   TEXT        NOT NULL,
     attempts     INT         NOT NULL,
-    window_start TIMESTAMPTZ NOT NULL
+    window_start TIMESTAMPTZ NOT NULL,
+    CONSTRAINT rate_limits_event_type_identifier_key UNIQUE (event_type, identifier)
 );
 
 -- Supports the check_rate_limit lookup: narrows by event_type + identifier,
