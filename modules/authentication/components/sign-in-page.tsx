@@ -3,11 +3,11 @@
 import { useForm, SubmitHandler } from "react-hook-form"
 import { SignIn, SignInForm } from "../types/sign-in-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signIn } from "../server-actions/signInServerAction";
+import { signIn } from "../server/signInServerAction";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authSchema } from "../types/authenticate.schema";
-import { doesEmailNeedValidation, resendEmail } from "../server-actions/signUpServerAction";
+import { doesEmailNeedValidation, resendEmail } from "../server/signUpServerAction";
 
 const SignInPage = () => {
     const router = useRouter()

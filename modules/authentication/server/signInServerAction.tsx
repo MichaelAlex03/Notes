@@ -6,6 +6,7 @@ import { supabaseAdmin } from "@/supabase/adminClient";
 import { createJWT, createRefreshToken } from "../lib/signIn";
 import { cookies } from "next/headers";
 import { headers } from 'next/headers'
+import { authLogger } from "./logger";
 
 const RATE_LIMIT_SIGN_IN_WINDOW_MS = 300000
 
@@ -14,6 +15,7 @@ export const signIn = async (data: SignIn) => {
 	const validData = SignInForm.safeParse(data)
 
 	if (!validData.success) {
+		authLogger.error('Invalid email or password')
 		return {
 			success: false,
 			error: 'Sign in payload data invalid',
@@ -36,6 +38,7 @@ export const signIn = async (data: SignIn) => {
 
 	if (!ipRateLimits || ipRateLimitError) return { success: false, error: 'Unable to fetch rate limits' }
 	if (!ipRateLimits[0].allowed) {
+		authLogger.warn({ ip }, "IP rate limit exceeded")
 		const remainingMinutes = Math.ceil((new Date(ipRateLimits[0].windowend).getTime() - Date.now()) / 60000)
 		return { success: false, error: `Too many attempts, try again in ${remainingMinutes} minutes` }
 	}
@@ -51,6 +54,7 @@ export const signIn = async (data: SignIn) => {
 
 	if (!emailRateLimits || emailRateLimitError) return { success: false, error: 'Unable to fetch rate limits' }
 	if (!emailRateLimits[0].allowed) {
+		authLogger.warn({ email }, 'Rate limit exceeded for email')
 		const remainingMinutes = Math.ceil((new Date(emailRateLimits[0].windowend).getTime() - Date.now()) / 60000)
 		return { success: false, error: `Too many attempts, try again in ${remainingMinutes} minutes` }
 	}
@@ -103,7 +107,7 @@ export const signIn = async (data: SignIn) => {
 		httpOnly: true,
 		secure: process.env.NODE_ENV === 'production',
 		sameSite: 'strict',
-		path: '/', 
+		path: '/',
 		maxAge: 60 * 30, // 30 min
 	})
 
@@ -112,8 +116,8 @@ export const signIn = async (data: SignIn) => {
 		httpOnly: true,
 		secure: process.env.NODE_ENV === 'production',
 		sameSite: 'lax',
-		path: '/', 
-		maxAge: 60 * 60, 
+		path: '/',
+		maxAge: 60 * 60,
 	});
 
 
